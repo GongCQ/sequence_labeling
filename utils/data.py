@@ -1,12 +1,14 @@
 import os
 import copy
 import random
+import numpy as np
 import utils
 import pytorch_pretrained_bert as torch_bert
 
+# ----------------------------------------------------
 OUT_LABEL = 'O'
 LABEL_SEP = '-'
-SEQ_MAX_LEN = 50
+SEQ_MAX_LEN = 250
 PAD_TOKEN = '[PAD]' # 不可修改
 UNKNOWN_TOKEN = '[UNK]' # 不可修改
 BEGIN_LABEL = '[B]'
@@ -22,6 +24,7 @@ UNKNOWN_TOKEN_DICT = {'“': '[unused1]',
                       '…': '[unused6]'}
 UNKNOWN_TOKEN_DICT_INV = {}
 [UNKNOWN_TOKEN_DICT_INV.setdefault(v, k) for k, v in UNKNOWN_TOKEN_DICT.items()]
+# ----------------------------------------------------
 
 class Tokenizer:
     def __init__(self, path: str):
@@ -40,10 +43,10 @@ class Tokenizer:
             if seq[s] not in self.tokenizer.vocab.keys():
                 seq[s] = UNKNOWN_TOKEN
         ids = self.tokenizer.convert_tokens_to_ids(seq)
-        if len(ids) > SEQ_MAX_LEN:
-            ids = ids[ : SEQ_MAX_LEN]
-        elif len(ids) < SEQ_MAX_LEN:
-            ids = ids + [self.pad_index] * (SEQ_MAX_LEN - len(ids))
+        # if len(ids) > SEQ_MAX_LEN:
+        #     ids = ids[ : SEQ_MAX_LEN]
+        # elif len(ids) < SEQ_MAX_LEN:
+        #     ids = ids + [self.pad_index] * (SEQ_MAX_LEN - len(ids))
         return ids
 
     def decode(self, ids: list):
@@ -70,11 +73,11 @@ class LabelTokenizer:
         ids = [None] * len(seq)
         for i, label in enumerate(seq):
             ids[i] = self.label_id_dict[label]
-        if SEQ_MAX_LEN is not None:
-            if len(ids) > SEQ_MAX_LEN:
-                ids = ids[ : SEQ_MAX_LEN]
-            elif len(ids) < SEQ_MAX_LEN:
-                ids = ids + [END_ID] * (SEQ_MAX_LEN - len(ids))
+        # if SEQ_MAX_LEN is not None:
+        #     if len(ids) > SEQ_MAX_LEN:
+        #         ids = ids[ : SEQ_MAX_LEN]
+        #     elif len(ids) < SEQ_MAX_LEN:
+        #         ids = ids + [END_ID] * (SEQ_MAX_LEN - len(ids))
         return ids
 
     def decode(self, ids: list):
@@ -111,6 +114,17 @@ class DataSet:
             label_ids = self.label_tokenizer.encode(label)
             self.seq_ids_list.append(seq_ids)
             self.label_ids_list.append(label_ids)
+
+    def __len__(self):
+        return int(np.floor(len(self.seq_label_list) / self.batch_size))
+
+    def __getitem__(self, batch_index):
+        seq_ids_batch = self.seq_ids_list[batch_index * self.batch_size :
+                                          min(len(self.seq_ids_list), (batch_index + 1) * self.batch_size)]
+        label_ids_batch = self.label_ids_list[batch_index * self.batch_size :
+                                              min(len(self.seq_ids_list), (batch_index + 1) * self.batch_size)]
+        return self._pad_batch(seq_ids_batch=seq_ids_batch, label_ids_batch=label_ids_batch)
+
 
     def info(self):
         label_count_str = '; '.join(label + ' ' + str(count)
@@ -159,6 +173,28 @@ class DataSet:
         max_len_dict = {'max_len'    : max_len,     'max_len_990': max_len_990,
                         'max_len_975': max_len_975, 'max_len_950': max_len_950}
         return seq_list, max_len_dict, label_count_dict
+
+    def _pad(self, ids, pad_index, max_len):
+        if len(ids) > max_len:
+            return ids[ : max_len]
+        elif len(ids) < max_len:
+            return ids + [pad_index] * (max_len - len(ids))
+        return ids
+
+    def _pad_seq(self, seq_ids, max_len):
+        return self._pad(seq_ids, pad_index=self.tokenizer.pad_index, max_len=max_len)
+
+    def _pad_label(self, label_ids, max_len):
+        return self._pad(label_ids, pad_index=END_ID, max_len=max_len)
+
+    def _pad_batch(self, seq_ids_batch, label_ids_batch):
+        max_len = max([len(seq_ids) for seq_ids in seq_ids_batch])
+        padded_seq_ids_batch = []
+        padded_label_ids_batch = []
+        for i in range(len(seq_ids_batch)):
+            padded_seq_ids_batch.append(self._pad_seq(seq_ids=seq_ids_batch[i], max_len=max_len))
+            padded_label_ids_batch.append(self._pad_label(label_ids=label_ids_batch[i], max_len=max_len))
+        return padded_seq_ids_batch, padded_label_ids_batch
 
     def _test_tokenizer(self):
         index = random.randint(0, len(self.seq_label_list) - 1)
