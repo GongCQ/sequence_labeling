@@ -2,11 +2,26 @@ import utils.data as data
 import pytorch_pretrained_bert as torch_bert
 import datetime as dt
 import numpy as np
+import torch
 
 # -----------------------------------------------------------
 tok = data.Tokenizer(path='./bert_model/pytorch_pretrained_bert/bert-base-chinese/vocab.txt')
 ds = data.DataSet(path='./data/tiny_data/bioes/train.txt', tokenizer=tok, batch_size=32)
 print(ds.info())
+bert_model = torch_bert.BertModel.from_pretrained('./bert_model/pytorch_pretrained_bert/bert-base-chinese')
+# bert_model = bert_model.cuda() # 显存又特喵的不够啊，这破GPU有跟没有一样！
+
+for padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch in ds:
+    seq_batch, label_batch = \
+        ds.decode_batch(padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch)
+    padded_seq_ids_batch_tensor = torch.Tensor(padded_seq_ids_batch).to(torch.int64) # .cuda()
+    seq_ids_mask_batch_tensor = torch.Tensor(seq_ids_mask_batch).to(torch.int64) # .cuda()
+    padded_seq_ids_batch_tensor.requires_grad = False
+    seq_ids_mask_batch_tensor.requires_grad = False
+    embs = bert_model(input_ids=padded_seq_ids_batch_tensor, attention_mask=seq_ids_mask_batch_tensor)
+
+    ddd = 0
+
 #
 # rs = ['从', '前', '有', '座', '山', '，', '山', '上', '有', '座', '庙', '。']
 # ids = tok.encode(rs)
