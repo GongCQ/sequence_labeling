@@ -150,7 +150,7 @@ class DataSet:
             print('')
 
     def info(self):
-        label_count_str = '; '.join(label + ' ' + str(count)
+        label_count_str = '\n'.join('                  ' + label + ' ' + str(count)
                                     for label, count
                                     in sorted(self.label_count_dict.items(), key=lambda x: x[0], reverse=False))
         info = 'sequence number   : %s' % len(self.seq_label_list) + \
@@ -159,7 +159,7 @@ class DataSet:
                '\nmax length 97.5 : %s' % self.max_len_dict['max_len_975'] + \
                '\nmax length 95.0 : %s' % self.max_len_dict['max_len_950'] + \
                '\ntag set         : %s' % ' '.join(self.tag_set) + \
-               '\nlabel set       : %s' % label_count_str + '\n'
+               '\nlabel set       :\n%s' % label_count_str + '\n'
         return info
 
     def _resolve_seq_label_file(self, file):
