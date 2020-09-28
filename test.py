@@ -10,10 +10,10 @@ rs = ['从', '前', '有', '座', '山', '，', '山', '上', '有', '座', '庙
 ids = tok.encode(rs)
 seq = tok.decode(ids)
 
-# print('begin test %s' % dt.datetime.now())
-# for i in range(100000):
-#     ds._test_tokenizer()
-# print('end test %s' % dt.datetime.now())
+print('begin test %s' % dt.datetime.now())
+for i in range(100000):
+    ds._test_tokenizer()
+print('end test %s' % dt.datetime.now())
 
 lc = 0
 for padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch in ds:

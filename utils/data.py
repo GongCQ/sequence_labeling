@@ -65,11 +65,11 @@ class LabelTokenizer:
             self.label_id_dict[label] = len(self.label_id_dict)
             self.id_label_dict[len(self.id_label_dict)] = label
         self.label_id_dict[BEGIN_LABEL] = len(label_set) + 2 + BEGIN_ID
-        self.id_label_dict[BEGIN_ID] = BEGIN_LABEL
         self.label_id_dict[END_LABEL] = len(label_set) + 2 + END_ID
-        self.id_label_dict[END_ID] = END_LABEL
         self.begin_id = self.label_id_dict[BEGIN_LABEL]
         self.end_id = self.label_id_dict[END_LABEL]
+        self.id_label_dict[self.begin_id] = BEGIN_LABEL
+        self.id_label_dict[self.end_id] = END_LABEL
         self.unknown_id = len(label_set) + 2
 
     def encode(self, seq: list):
