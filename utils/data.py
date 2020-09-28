@@ -68,6 +68,9 @@ class LabelTokenizer:
         self.id_label_dict[BEGIN_ID] = BEGIN_LABEL
         self.label_id_dict[END_LABEL] = len(label_set) + 2 + END_ID
         self.id_label_dict[END_ID] = END_LABEL
+        self.begin_id = self.label_id_dict[BEGIN_LABEL]
+        self.end_id = self.label_id_dict[END_LABEL]
+        self.unknown_id = len(label_set) + 2
 
     def encode(self, seq: list):
         ids = [None] * len(seq)
@@ -116,15 +119,35 @@ class DataSet:
             self.label_ids_list.append(label_ids)
 
     def __len__(self):
-        return int(np.floor(len(self.seq_label_list) / self.batch_size))
+        return int(np.ceil(len(self.seq_label_list) / self.batch_size))
 
     def __getitem__(self, batch_index):
+        if batch_index >= len(self):
+            raise IndexError('index %s out of range' % batch_index)
         seq_ids_batch = self.seq_ids_list[batch_index * self.batch_size :
                                           min(len(self.seq_ids_list), (batch_index + 1) * self.batch_size)]
         label_ids_batch = self.label_ids_list[batch_index * self.batch_size :
                                               min(len(self.seq_ids_list), (batch_index + 1) * self.batch_size)]
-        return self._pad_batch(seq_ids_batch=seq_ids_batch, label_ids_batch=label_ids_batch)
+        padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch = \
+            self._pad_batch(seq_ids_batch=seq_ids_batch, label_ids_batch=label_ids_batch)
+        return padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch
 
+    def decode_batch(self, padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch):
+        seq_batch = []
+        label_batch = []
+        for padded_seq_ids, padded_label_ids, seq_ids_mask, label_ids_mask in \
+            zip(padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch):
+            seq = self.tokenizer.decode(list(np.array(padded_seq_ids)[seq_ids_mask]))
+            label = self.label_tokenizer.decode(list(np.array(padded_label_ids)[label_ids_mask]))
+            seq_batch.append(seq)
+            label_batch.append(label)
+        return seq_batch, label_batch
+
+    def print_batch(self, seq_batch, label_batch):
+        for seq, label in zip(seq_batch, label_batch):
+            for s, l in zip(seq, label):
+                print(s + ' ' + l)
+            print('')
 
     def info(self):
         label_count_str = '; '.join(label + ' ' + str(count)
@@ -176,25 +199,31 @@ class DataSet:
 
     def _pad(self, ids, pad_index, max_len):
         if len(ids) > max_len:
-            return ids[ : max_len]
+            ids = ids[ : max_len]
         elif len(ids) < max_len:
-            return ids + [pad_index] * (max_len - len(ids))
-        return ids
+            ids = ids + [pad_index] * (max_len - len(ids))
+        return ids, list(np.array(ids) != pad_index)
 
     def _pad_seq(self, seq_ids, max_len):
         return self._pad(seq_ids, pad_index=self.tokenizer.pad_index, max_len=max_len)
 
     def _pad_label(self, label_ids, max_len):
-        return self._pad(label_ids, pad_index=END_ID, max_len=max_len)
+        return self._pad(label_ids, pad_index=self.label_tokenizer.unknown_id, max_len=max_len)
 
     def _pad_batch(self, seq_ids_batch, label_ids_batch):
         max_len = max([len(seq_ids) for seq_ids in seq_ids_batch])
         padded_seq_ids_batch = []
         padded_label_ids_batch = []
+        seq_ids_mask_batch = []
+        label_ids_mask_batch = []
         for i in range(len(seq_ids_batch)):
-            padded_seq_ids_batch.append(self._pad_seq(seq_ids=seq_ids_batch[i], max_len=max_len))
-            padded_label_ids_batch.append(self._pad_label(label_ids=label_ids_batch[i], max_len=max_len))
-        return padded_seq_ids_batch, padded_label_ids_batch
+            padded_seq_ids, seq_ids_mask = self._pad_seq(seq_ids=seq_ids_batch[i], max_len=max_len)
+            padded_label_ids, label_ids_mask = self._pad_label(label_ids=label_ids_batch[i], max_len=max_len)
+            padded_seq_ids_batch.append(padded_seq_ids)
+            padded_label_ids_batch.append(padded_label_ids)
+            seq_ids_mask_batch.append(seq_ids_mask)
+            label_ids_mask_batch.append(label_ids_mask)
+        return padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch
 
     def _test_tokenizer(self):
         index = random.randint(0, len(self.seq_label_list) - 1)
