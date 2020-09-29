@@ -2,15 +2,14 @@ import os
 import copy
 import random
 import numpy as np
-import utils
 import pytorch_pretrained_bert as torch_bert
 
 # ----------------------------------------------------
-OUT_LABEL = 'O'
+OUT_LABEL = 'O' # immutable
 LABEL_SEP = '-'
 SEQ_MAX_LEN = 250
-PAD_TOKEN = '[PAD]' # 不可修改
-UNKNOWN_TOKEN = '[UNK]' # 不可修改
+PAD_TOKEN = '[PAD]' # immutable
+UNKNOWN_TOKEN = '[UNK]' # immutable
 BEGIN_LABEL = '[B]'
 BEGIN_ID = -2
 END_LABEL = '[E]'

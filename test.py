@@ -22,7 +22,7 @@ for padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_
         ll += label
     pll = copy.deepcopy(ll)
     for p in range(len(ll)):
-        if random.uniform(0, 1) <= 0.1:
+        if random.uniform(0, 1) <= 0.2:
             el = random.choice(list(ds.label_tokenizer.label_set))
             pll[p] = el
     total_accurate, total_recall, accurate_dict, recall_dict = met.entity_wise_metric(true_label_list=ll, predict_label_list=pll)
