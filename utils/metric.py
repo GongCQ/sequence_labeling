@@ -62,7 +62,46 @@ class Metric:
         return self._check_format_bioes(label_list) if self.format == 'bioes' else self._check_format_bio(label_list)
 
     def elem_wise_metric(self, true_label_list, predict_label_list):
-        pass
+        assert len(true_label_list) == len(predict_label_list), 'the lengths of truth and prediction have to be equal.'
+
+        true_pos_predict_pos_count = 0
+        true_pos_predict_neg_count = 0
+        true_neg_predict_pos_count = 0
+        true_pos_predict_pos_count_dict = dict([(label, 0) for label in self.label_set])
+        true_pos_predict_neg_count_dict = dict([(label, 0) for label in self.label_set])
+        true_neg_predict_pos_count_dict = dict([(label, 0) for label in self.label_set])
+        for true_label, predict_label in zip(true_label_list, predict_label_list):
+            is_correct = true_label == predict_label
+            if true_label.find(LABEL_SEP) > 0:
+                if is_correct:
+                    true_pos_predict_pos_count += 1
+                    true_pos_predict_pos_count_dict[true_label] += 1
+                else:
+                    true_pos_predict_neg_count += 1
+                    true_pos_predict_neg_count_dict[true_label] += 1
+
+            if predict_label.find(LABEL_SEP) > 0:
+                if not is_correct:
+                    true_neg_predict_pos_count += 1
+                    true_neg_predict_pos_count_dict[predict_label] += 1
+
+        predict_pos_count = true_pos_predict_pos_count + true_neg_predict_pos_count
+        true_pos_count = true_pos_predict_pos_count + true_pos_predict_neg_count
+        total_accurate = true_pos_predict_pos_count / predict_pos_count if predict_pos_count > 0 else np.nan
+        total_recall = true_pos_predict_pos_count / true_pos_count if true_pos_count > 0 else np.nan
+
+        accurate_dict = {}
+        recall_dict = {}
+        for label in self.label_set:
+            predict_pos_count = true_pos_predict_pos_count_dict[label] + true_neg_predict_pos_count_dict[label]
+            true_pos_count = true_pos_predict_pos_count_dict[label] + true_pos_predict_neg_count_dict[label]
+            accurate = true_pos_predict_pos_count_dict[label] / predict_pos_count if predict_pos_count > 0 else np.nan
+            recall = true_pos_predict_pos_count_dict[label] / true_pos_count if true_pos_count > 0 else np.nan
+            accurate_dict[label] = accurate
+            recall_dict[label] = recall
+
+        return total_accurate, total_recall, accurate_dict, recall_dict
+
 
     def entity_wise_metric(self, true_label_list, predict_label_list):
         assert len(true_label_list) == len(predict_label_list), 'the lengths of truth and prediction have to be equal.'

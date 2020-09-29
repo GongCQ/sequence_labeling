@@ -9,7 +9,7 @@ import copy
 import random
 
 # -----------------------------------------------------------
-format = 'bio'
+format = 'bioes'
 model_path = './bert_model/pytorch_pretrained_bert/bert-base-chinese/'
 tok = data.Tokenizer(path=os.path.join(model_path, 'vocab.txt'))
 ds = data.DataSet(path='./data/tiny_data/%s/train.txt' % format, tokenizer=tok, batch_size=10, shuffle=False)
@@ -26,6 +26,7 @@ for padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_
             el = random.choice(list(ds.label_tokenizer.label_set))
             pll[p] = el
     total_accurate, total_recall, accurate_dict, recall_dict = met.entity_wise_metric(true_label_list=ll, predict_label_list=pll)
+    total_accurate_, total_recall_, accurate_dict_, recall_dict_ = met.elem_wise_metric(true_label_list=ll, predict_label_list=pll)
     ect = met.check_format(ll)
     ecp = met.check_format(pll)
     print(str(ect) + ' ' + str(ecp))
