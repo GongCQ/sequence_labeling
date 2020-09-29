@@ -180,7 +180,7 @@ class DataSet:
                 if len(seq) > 0:
                     if len(seq) > SEQ_MAX_LEN - 2:  # limit sequence length while reading data.
                         seq = seq[ : SEQ_MAX_LEN - 2]
-                    seq = [[BEGIN_TOKEN, BEGIN_LABEL]] + seq + [[END_TOKEN, END_LABEL]]
+                    seq = [[BEGIN_TOKEN, BEGIN_LABEL]] + seq + [[END_TOKEN, END_LABEL]] # join [begin, sentence, end].
                     seq_list.append(seq)
                 seq = []
             else:
