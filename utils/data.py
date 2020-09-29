@@ -16,12 +16,15 @@ BEGIN_ID = -2
 END_LABEL = '[E]'
 END_ID = -1
 
-UNKNOWN_TOKEN_DICT = {'“': '[unused1]',
-                      '”': '[unused2]',
-                      '‘': '[unused3]',
-                      '’': '[unused4]',
-                      '—': '[unused5]',
-                      '…': '[unused6]'}
+BEGIN_TOKEN = '[unused1]'
+END_TOKEN = '[unused2]'
+
+UNKNOWN_TOKEN_DICT = {'“': '[unused3]',
+                      '”': '[unused4]',
+                      '‘': '[unused5]',
+                      '’': '[unused6]',
+                      '—': '[unused7]',
+                      '…': '[unused8]'}
 UNKNOWN_TOKEN_DICT_INV = {}
 [UNKNOWN_TOKEN_DICT_INV.setdefault(v, k) for k, v in UNKNOWN_TOKEN_DICT.items()]
 # ----------------------------------------------------
@@ -90,20 +93,22 @@ class LabelTokenizer:
         return seq
 
 class DataSet:
-    def __init__(self, path: str, tokenizer: Tokenizer, batch_size: int):
+    def __init__(self, path: str, tokenizer: Tokenizer, batch_size: int, shuffle: bool = True):
         '''
         :param path: data file path
         :param tokenizer: Tokenizer
         '''
         self.path = path
+        self.tokenizer = tokenizer
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+
         self.file = open(path, encoding='utf-8')
         self.seq_label_list, self.max_len_dict, self.label_count_dict = self._resolve_seq_label_file(self.file)
         self.tag_set = set([label.split(LABEL_SEP)[1]
                             for label in self.label_count_dict.keys()
                             if label != OUT_LABEL])
-        self.tokenizer = tokenizer
         self.label_tokenizer = LabelTokenizer(set(self.label_count_dict.keys()))
-        self.batch_size = batch_size
 
         self.seq_ids_list = []
         self.label_ids_list = []
@@ -137,8 +142,8 @@ class DataSet:
         label_batch = []
         for padded_seq_ids, padded_label_ids, seq_ids_mask, label_ids_mask in \
             zip(padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch):
-            seq = self.tokenizer.decode(list(np.array(padded_seq_ids)[seq_ids_mask]))
-            label = self.label_tokenizer.decode(list(np.array(padded_label_ids)[label_ids_mask]))
+            seq = self.tokenizer.decode(list(np.array(padded_seq_ids)[np.array(seq_ids_mask) == 1]))
+            label = self.label_tokenizer.decode(list(np.array(padded_label_ids)[np.array(label_ids_mask) == 1]))
             seq_batch.append(seq)
             label_batch.append(label)
         return seq_batch, label_batch
@@ -150,16 +155,16 @@ class DataSet:
             print('')
 
     def info(self):
-        label_count_str = '\n'.join('                  ' + label + ' ' + str(count)
+        label_count_str = '\n                  '.join(label + ' ' + str(count)
                                     for label, count
                                     in sorted(self.label_count_dict.items(), key=lambda x: x[0], reverse=False))
-        info = 'sequence number   : %s' % len(self.seq_label_list) + \
+        info = 'sequence number : %s' % len(self.seq_label_list) + \
                '\nmax length      : %s' % self.max_len_dict['max_len'] + \
-               '\nmax length 99.0 : %s' % self.max_len_dict['max_len_990'] + \
                '\nmax length 97.5 : %s' % self.max_len_dict['max_len_975'] + \
-               '\nmax length 95.0 : %s' % self.max_len_dict['max_len_950'] + \
+               '\nmax length 99.0 : %s' % self.max_len_dict['max_len_990'] + \
+               '\nmax length 99.9 : %s' % self.max_len_dict['max_len_999'] + \
                '\ntag set         : %s' % ' '.join(self.tag_set) + \
-               '\nlabel set       :\n%s' % label_count_str + '\n'
+               '\nlabel set       : %s' % label_count_str + '\n'
         return info
 
     def _resolve_seq_label_file(self, file):
@@ -173,8 +178,9 @@ class DataSet:
                 seq_len = len(seq)
                 seq_len_list.append(seq_len)
                 if len(seq) > 0:
-                    if len(seq) > SEQ_MAX_LEN:  # limit sequence length while reading data.
-                        seq = seq[ : SEQ_MAX_LEN]
+                    if len(seq) > SEQ_MAX_LEN - 2:  # limit sequence length while reading data.
+                        seq = seq[ : SEQ_MAX_LEN - 2]
+                    seq = [[BEGIN_TOKEN, BEGIN_LABEL]] + seq + [[END_TOKEN, END_LABEL]]
                     seq_list.append(seq)
                 seq = []
             else:
@@ -188,21 +194,27 @@ class DataSet:
         sorted_seq_len_list = sorted(seq_len_list, reverse=False)
         loc_990 = int(len(seq_len_list) * 0.99 ) - 1
         loc_975 = int(len(seq_len_list) * 0.975) - 1
-        loc_950 = int(len(seq_len_list) * 0.95 ) - 1
+        loc_999 = int(len(seq_len_list) * 0.999 ) - 1
         max_len = sorted_seq_len_list[-1]
         max_len_990 = sorted_seq_len_list[loc_990]
         max_len_975 = sorted_seq_len_list[loc_975]
-        max_len_950 = sorted_seq_len_list[loc_950]
+        max_len_999 = sorted_seq_len_list[loc_999]
         max_len_dict = {'max_len'    : max_len,     'max_len_990': max_len_990,
-                        'max_len_975': max_len_975, 'max_len_950': max_len_950}
+                        'max_len_975': max_len_975, 'max_len_999': max_len_999}
+        if self.shuffle:
+            random.shuffle(seq_list)
         return seq_list, max_len_dict, label_count_dict
 
     def _pad(self, ids, pad_index, max_len):
         if len(ids) > max_len:
+            mask = [1] * max_len
             ids = ids[ : max_len]
         elif len(ids) < max_len:
+            mask = [1] * len(ids) + [0] * (max_len - len(ids))
             ids = ids + [pad_index] * (max_len - len(ids))
-        return ids, list(np.array(ids) != pad_index)
+        else:
+            mask = [1] * len(ids)
+        return ids, mask
 
     def _pad_seq(self, seq_ids, max_len):
         return self._pad(seq_ids, pad_index=self.tokenizer.pad_index, max_len=max_len)

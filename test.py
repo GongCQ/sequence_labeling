@@ -6,7 +6,7 @@ import torch
 
 # -----------------------------------------------------------
 tok = data.Tokenizer(path='./bert_model/pytorch_pretrained_bert/bert-base-chinese/vocab.txt')
-ds = data.DataSet(path='./data/tiny_data/bioes/train.txt', tokenizer=tok, batch_size=32)
+ds = data.DataSet(path='./data/tiny_data/bioes/train.txt', tokenizer=tok, batch_size=32, shuffle=False)
 print(ds.info())
 bert_model = torch_bert.BertModel.from_pretrained('./bert_model/pytorch_pretrained_bert/bert-base-chinese')
 # bert_model = bert_model.cuda() # 显存又特喵的不够啊，这破GPU有跟没有一样！
@@ -18,8 +18,11 @@ for padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_
     seq_ids_mask_batch_tensor = torch.Tensor(seq_ids_mask_batch).to(torch.int64) # .cuda()
     padded_seq_ids_batch_tensor.requires_grad = False
     seq_ids_mask_batch_tensor.requires_grad = False
-    embs = bert_model(input_ids=padded_seq_ids_batch_tensor, attention_mask=seq_ids_mask_batch_tensor)
-
+    char_emb_seq, sen_emb = bert_model(input_ids=padded_seq_ids_batch_tensor,
+                                       attention_mask=seq_ids_mask_batch_tensor,
+                                       output_all_encoded_layers=False)
+    ds.print_batch(seq_batch, label_batch)
+    print(dt.datetime.now())
     ddd = 0
 
 #
