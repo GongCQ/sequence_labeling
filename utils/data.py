@@ -107,6 +107,7 @@ class DataSet:
         self.tag_set = set([label.split(LABEL_SEP)[1]
                             for label in self.label_count_dict.keys()
                             if label != OUT_LABEL])
+        self.label_set = set(self.label_count_dict.keys())
         self.label_tokenizer = LabelTokenizer(set(self.label_count_dict.keys()))
 
         self.seq_ids_list = []
