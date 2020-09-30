@@ -14,6 +14,7 @@ BEGIN_LABEL = '[B]'
 BEGIN_ID = -2
 END_LABEL = '[E]'
 END_ID = -1
+UNKNOWN_LABEL = '[X]'
 
 BEGIN_TOKEN = '[unused1]'
 END_TOKEN = '[unused2]'
@@ -64,15 +65,19 @@ class LabelTokenizer:
         self.label_id_dict = {}
         self.id_label_dict = {}
         for label in self.label_set:
-            self.label_id_dict[label] = len(self.label_id_dict)
-            self.id_label_dict[len(self.id_label_dict)] = label
-        self.label_id_dict[BEGIN_LABEL] = len(label_set) + 2 + BEGIN_ID
-        self.label_id_dict[END_LABEL] = len(label_set) + 2 + END_ID
+            self.label_id_dict[label] = len(self.label_id_dict) + 1
+            self.id_label_dict[len(self.id_label_dict) + 1] = label
+
+        self.label_id_dict[BEGIN_LABEL] = len(label_set) + 2 + BEGIN_ID + 1
+        self.label_id_dict[END_LABEL] = len(label_set) + 2 + END_ID + 1
         self.begin_id = self.label_id_dict[BEGIN_LABEL]
         self.end_id = self.label_id_dict[END_LABEL]
         self.id_label_dict[self.begin_id] = BEGIN_LABEL
         self.id_label_dict[self.end_id] = END_LABEL
-        self.unknown_id = len(label_set) + 2
+        self.unknown_id = 0
+        self.label_id_dict[UNKNOWN_LABEL] = self.unknown_id
+        self.id_label_dict[self.unknown_id] = UNKNOWN_LABEL
+        self.label_num = len(self.label_id_dict)
 
     def encode(self, seq: list):
         ids = [None] * len(seq)
@@ -167,6 +172,14 @@ class DataSet:
                '\nlabel set       : %s' % label_count_str + '\n'
         return info
 
+    def _format_seq(self, seq):
+        if len(seq) > SEQ_MAX_LEN - 2:
+            seq = seq[ : SEQ_MAX_LEN - 2]
+        for char_label in seq:
+            char_label[0] = char_label[0].lower()
+        seq = [[BEGIN_TOKEN, BEGIN_LABEL]] + seq + [[END_TOKEN, END_LABEL]]
+        return seq
+
     def _resolve_seq_label_file(self, file):
         seq_list = []
         seq_len_list = []
@@ -178,15 +191,13 @@ class DataSet:
                 seq_len = len(seq)
                 seq_len_list.append(seq_len)
                 if len(seq) > 0:
-                    if len(seq) > SEQ_MAX_LEN - 2:  # limit sequence length while reading data.
-                        seq = seq[ : SEQ_MAX_LEN - 2]
-                    seq = [[BEGIN_TOKEN, BEGIN_LABEL]] + seq + [[END_TOKEN, END_LABEL]] # join [begin, sentence, end].
+                    seq = self._format_seq(seq)
                     seq_list.append(seq)
                 seq = []
             else:
                 line_split = line.split(' ')
                 assert len(line_split) == 2, 'line must be separated by spacing.'
-                char = line_split[0].lower() # limit to lowercase while reading data.
+                char = line_split[0]
                 label = line_split[1]
                 label_count_dict.setdefault(label, 0)
                 label_count_dict[label] += 1
