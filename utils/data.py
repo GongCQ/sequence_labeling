@@ -77,7 +77,7 @@ class LabelTokenizer:
         self.unknown_id = 0
         self.label_id_dict[UNKNOWN_LABEL] = self.unknown_id
         self.id_label_dict[self.unknown_id] = UNKNOWN_LABEL
-        self.label_num = len(self.label_id_dict)
+        self.label_num = len(self.label_id_dict) - 2
 
     def encode(self, seq: list):
         ids = [None] * len(seq)
