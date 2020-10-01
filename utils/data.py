@@ -15,6 +15,8 @@ BEGIN_ID = -2
 END_LABEL = '[E]'
 END_ID = -1
 UNKNOWN_LABEL = '[X]'
+LABEL_NUM = None
+TAG_NUM = None
 
 BEGIN_TOKEN = '[unused1]'
 END_TOKEN = '[unused2]'

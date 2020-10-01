@@ -39,6 +39,10 @@ def log_sum_exp(vec, m_size):
 class CRF(nn.Module):
 
     def __init__(self, tagset_size, gpu):
+        '''
+        :param tagset_size: 实际标签数量加1，起始标签和结束标签不计算在实际标签数量内。见seqlabel里面对CRF对象的构造
+        :param gpu:
+        '''
         super(CRF, self).__init__()
         print("build CRF...")
         self.gpu = gpu
@@ -274,6 +278,7 @@ class CRF(nn.Module):
         return gold_score
 
     def neg_log_likelihood_loss(self, feats, mask, tags):
+
         # nonegative log likelihood
         batch_size = feats.size(0)
         forward_score, scores = self._calculate_PZ(feats, mask)
