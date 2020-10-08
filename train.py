@@ -20,7 +20,7 @@ seq_label_model = SeqLabel(emb_seq_model=emb_seq_model,
 for i in range(50):
     c = 0
     for seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch in train_data_set:
-        print('\n~~ %s %s' % (i, c))
+        print('\n~~ epoch %s, batch %s ----------------------------------------' % (i, c))
         seq_ids_batch_t = torch.Tensor(seq_ids_batch).to(torch.int64)
         label_ids_batch_t = torch.Tensor(label_ids_batch).to(torch.int64)
         seq_ids_mask_batch_t = torch.Tensor(seq_ids_mask_batch).to(torch.bool)
@@ -28,7 +28,7 @@ for i in range(50):
         loss = seq_label_model.train_batch(seq_ids=seq_ids_batch_t,
                                            label_ids=label_ids_batch_t,
                                            mask=seq_ids_mask_batch_t)
-        print(str(loss))
+        print('\n~~ loss %s' % str(loss))
 
         path_score, predict_label_ids_batch = seq_label_model(seq_ids=seq_ids_batch_t,
                                                               mask=seq_ids_mask_batch_t)
@@ -42,10 +42,10 @@ for i in range(50):
             met.elem_wise_metric_batch(true_label_list_batch=label_batch, predict_label_list_batch=predict_label_batch)
         total_accurate_2, total_recall_2, accurate_dict_2, recall_dict_2 = \
             met.entity_wise_metric_batch(true_label_list_batch=label_batch, predict_label_list_batch=predict_label_batch)
-        print('~~ elem wise: acc %s, rec %s, \nacc_detail %s \nrec_detail %s' %
-              (total_accurate, total_recall, accurate_dict, recall_dict))
-        print('~~ enti wise: acc %s, rec %s, \nacc_detail %s \nrec_detail %s' %
-              (total_accurate_2, total_recall_2, accurate_dict_2, recall_dict_2))
+        print('\n~~ elem   wise: acc %s, rec %s' % (total_accurate, total_recall))
+        print('~~ entity wise: acc %s, rec %s' % (total_accurate_2, total_recall_2))
+        print('\n~~ elem   wise: \nacc_detail %s \nrec_detail %s' % (accurate_dict, recall_dict))
+        print('~~ entity wise: \nacc_detail %s \nrec_detail %s' % (accurate_dict_2, recall_dict_2))
 
         c += 1
 
