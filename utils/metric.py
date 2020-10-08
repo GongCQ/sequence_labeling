@@ -6,6 +6,7 @@ from utils.data import OUT_LABEL, LABEL_SEP
 class Metric:
     def __init__(self, label_set: set, tag_set: set, format: str):
         '''
+        all labels must be str, not int id.
         :param label_set: a set such as {'B-ORG', 'I-ORG', 'B-PER', 'I-PER', 'O'}
         :param tag_set: a set such as {'ORG', 'LOC', 'PER'}
         :param format: bio / bioes.
@@ -102,7 +103,6 @@ class Metric:
 
         return total_accurate, total_recall, accurate_dict, recall_dict
 
-
     def entity_wise_metric(self, true_label_list, predict_label_list):
         assert len(true_label_list) == len(predict_label_list), 'the lengths of truth and prediction have to be equal.'
 
@@ -166,3 +166,19 @@ class Metric:
             recall_dict[tag] = recall
 
         return total_accurate, total_recall, accurate_dict, recall_dict
+
+    def _flatten_batch(self, true_label_list_batch, predict_label_list_batch):
+        all_true_label_list = []
+        all_predict_label_list = []
+        for true_label_list, predict_label_list in zip(true_label_list_batch, predict_label_list_batch):
+            all_true_label_list += true_label_list
+            all_predict_label_list += predict_label_list
+        return all_true_label_list, all_predict_label_list
+
+    def elem_wise_metric_batch(self, true_label_list_batch, predict_label_list_batch):
+        all_true_label_list, all_predict_label_list = self._flatten_batch(true_label_list_batch, predict_label_list_batch)
+        return self.elem_wise_metric(true_label_list=all_true_label_list, predict_label_list=all_predict_label_list)
+
+    def entity_wise_metric_batch(self, true_label_list_batch, predict_label_list_batch):
+        all_true_label_list, all_predict_label_list = self._flatten_batch(true_label_list_batch, predict_label_list_batch)
+        return self.entity_wise_metric(true_label_list=all_true_label_list, predict_label_list=all_predict_label_list)

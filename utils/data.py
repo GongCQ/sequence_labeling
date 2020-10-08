@@ -145,15 +145,33 @@ class DataSet:
         return padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch
 
     def decode_batch(self, padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch):
-        seq_batch = []
-        label_batch = []
-        for padded_seq_ids, padded_label_ids, seq_ids_mask, label_ids_mask in \
-            zip(padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch):
-            seq = self.tokenizer.decode(list(np.array(padded_seq_ids)[np.array(seq_ids_mask) == 1]))
-            label = self.label_tokenizer.decode(list(np.array(padded_label_ids)[np.array(label_ids_mask) == 1]))
-            seq_batch.append(seq)
-            label_batch.append(label)
+        # seq_batch = []
+        # label_batch = []
+        # for padded_seq_ids, padded_label_ids, seq_ids_mask, label_ids_mask in \
+        #     zip(padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch):
+        #     seq = self.tokenizer.decode(list(np.array(padded_seq_ids)[np.array(seq_ids_mask) == 1]))
+        #     label = self.label_tokenizer.decode(list(np.array(padded_label_ids)[np.array(label_ids_mask) == 1]))
+        #     seq_batch.append(seq)
+        #     label_batch.append(label)
+
+        seq_batch = self.decode_seq_batch(padded_seq_ids_batch, seq_ids_mask_batch)
+        label_batch = self.decode_label_batch(padded_label_ids_batch, label_ids_mask_batch)
         return seq_batch, label_batch
+
+    def decode_seq_batch(self, padded_seq_ids_batch, seq_ids_mask_batch):
+        seq_batch = []
+        for padded_seq_ids, seq_ids_mask in zip(padded_seq_ids_batch, seq_ids_mask_batch):
+            seq = self.tokenizer.decode(list(np.array(padded_seq_ids)[np.array(seq_ids_mask) == 1]))
+            seq_batch.append(seq)
+        return seq_batch
+
+    def decode_label_batch(self, padded_label_ids_batch, label_ids_mask_batch):
+        label_batch = []
+        for padded_label_ids, label_ids_mask in \
+                zip(padded_label_ids_batch, label_ids_mask_batch):
+            label = self.label_tokenizer.decode(list(np.array(padded_label_ids)[np.array(label_ids_mask) == 1]))
+            label_batch.append(label)
+        return label_batch
 
     def print_batch(self, seq_batch, label_batch):
         for seq, label in zip(seq_batch, label_batch):
@@ -175,11 +193,18 @@ class DataSet:
         return info
 
     def _format_seq(self, seq):
-        if len(seq) > SEQ_MAX_LEN - 2:
-            seq = seq[ : SEQ_MAX_LEN - 2]
+        # --------------------------------------
+        # if len(seq) > SEQ_MAX_LEN - 2:
+        #     seq = seq[ : SEQ_MAX_LEN - 2]
+        # for char_label in seq:
+        #     char_label[0] = char_label[0].lower()
+        # seq = [[BEGIN_TOKEN, BEGIN_LABEL]] + seq + [[END_TOKEN, END_LABEL]]
+        # ......................................
+        if len(seq) > SEQ_MAX_LEN:
+            seq = seq[ : SEQ_MAX_LEN]
         for char_label in seq:
             char_label[0] = char_label[0].lower()
-        seq = [[BEGIN_TOKEN, BEGIN_LABEL]] + seq + [[END_TOKEN, END_LABEL]]
+        # --------------------------------------
         return seq
 
     def _resolve_seq_label_file(self, file):

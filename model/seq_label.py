@@ -19,10 +19,10 @@ class SeqLabel(nn.Module):
         self.optimizer = optim.SGD(params=[
                                            {'params': self.emb_seq_model.bert_model.parameters(),
                                             'lr': 0.00001,
-                                            'weight_decay': 1e-8},
+                                            'weight_decay': 0},
                                            {'params': self.emb_seq_model.full_conn.parameters(),
-                                            'lr': 0.01,
-                                            'weight_decay': 1e-8},
+                                            'lr': 0.003,
+                                            'weight_decay': 0.01},
                                            {'params': self.crf.parameters()}],
                                    lr=0.1, momentum=0,weight_decay=1e-8)
 

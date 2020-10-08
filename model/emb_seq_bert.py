@@ -15,6 +15,7 @@ class EmbSeqBert(nn.Module):
         self.trainable = trainable
         self.gpu = gpu
         self.bert_model = torch_bert.BertModel.from_pretrained(bert_model_path)
+        self.dropout = nn.Dropout(p=0.5)
         self.full_conn = nn.Linear(self.bert_model.config.hidden_size, label_num + 2)
         for param in self.bert_model.parameters():
             param.requires_grad  = trainable
@@ -27,7 +28,7 @@ class EmbSeqBert(nn.Module):
         '''
         char_emb_seq, sen_emb = self.bert_model(input_ids=seq_ids, attention_mask=mask,
                                                 output_all_encoded_layers=False)
-        feature_seq = self.full_conn(char_emb_seq)
+        feature_seq = self.full_conn(self.dropout(char_emb_seq))
         print('char_emb_seq norm     %s' % str(float(char_emb_seq.abs().mean())))
         print('feature_seq norm      %s' % str(float(feature_seq.abs().mean())))
         print('full_conn weight norm %s' % str(float(self.full_conn.weight.abs().mean())))
