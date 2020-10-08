@@ -123,6 +123,11 @@ class DataSet:
         else:
             self.label_tokenizer = label_tokenizer
 
+        self._regenerate_samples()
+
+    def _regenerate_samples(self):
+        if self.shuffle:
+            random.shuffle(self.seq_label_list)
         self.seq_ids_list = []
         self.label_ids_list = []
         for seq_label in self.seq_label_list:
@@ -135,13 +140,6 @@ class DataSet:
             label_ids = self.label_tokenizer.encode(label)
             self.seq_ids_list.append(seq_ids)
             self.label_ids_list.append(label_ids)
-
-    def shuffle(self):
-        shuffle_index = list(range(len(self.seq_label_list)))
-        random.shuffle(shuffle_index)
-        self.seq_label_list = self.seq_label_list[shuffle_index]
-        self.seq_ids_list = self.seq_ids_list[shuffle_index]
-        self.label_ids_list = self.label_ids_list[shuffle_index]
 
     def __len__(self):
         return int(np.ceil(len(self.seq_label_list) / self.batch_size))
@@ -157,9 +155,21 @@ class DataSet:
             self._pad_batch(seq_ids_batch=seq_ids_batch, label_ids_batch=label_ids_batch)
         return padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch
 
-    def get_all_as_batch(self):
+    def get_random_batch(self, size):
+        size = min(size, len(self.seq_label_list))
+        length = len(self.seq_label_list)
+        index_list = list(range(length))
+        random.shuffle(index_list)
+        index_list = index_list[ : size]
+
+        seq_ids_batch = []
+        label_ids_batch = []
+        for index in index_list:
+            seq_ids_batch.append(self.seq_ids_list[index])
+            label_ids_batch.append(self.label_ids_list[index])
+
         padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch = \
-            self._pad_batch(seq_ids_batch=self.seq_ids_list, label_ids_batch=self.label_ids_list)
+            self._pad_batch(seq_ids_batch=seq_ids_batch, label_ids_batch=label_ids_batch)
         return padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch
 
     def decode_batch(self, padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch):
@@ -257,8 +267,8 @@ class DataSet:
         max_len_999 = sorted_seq_len_list[loc_999]
         max_len_dict = {'max_len'    : max_len,     'max_len_990': max_len_990,
                         'max_len_975': max_len_975, 'max_len_999': max_len_999}
-        if self.shuffle:
-            random.shuffle(seq_list)
+        # if self.shuffle:
+        #     random.shuffle(seq_list)
         return seq_list, max_len_dict, label_count_dict
 
     def _pad(self, ids, pad_index, max_len):
@@ -328,3 +338,6 @@ class DataSetManager:
         self.valid_data_set = DataSet(path=valid_file_path,
                                      tokenizer=self.tokenizer, label_tokenizer=self.train_data_set.label_tokenizer,
                                      batch_size=batch_size, shuffle=shuffle)
+
+    def on_epoch_end(self):
+        self.train_data_set._regenerate_samples()
