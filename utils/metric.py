@@ -4,17 +4,19 @@ import numpy as np
 from utils.data import OUT_LABEL, LABEL_SEP
 
 class Metric:
-    def __init__(self, label_set: set, tag_set: set, format: str):
+    def __init__(self, label_set: set, tag_set: set, format: str, decimal: int = 6):
         '''
         all labels must be str, not int id.
         :param label_set: a set such as {'B-ORG', 'I-ORG', 'B-PER', 'I-PER', 'O'}
         :param tag_set: a set such as {'ORG', 'LOC', 'PER'}
-        :param format: bio / bioes.
+        :param format: bio / bioes
+        :param decimal: the number of decimal place
         '''
         assert format == 'bio' or format == 'bioes', 'unknown format %s, format must either be bio or bioes.' % format
         self.label_set = copy.deepcopy(label_set)
         self.tag_set = copy.deepcopy(tag_set)
         self.format = format
+        self.decimal = decimal
 
     def _check_format_bioes(self, label_list):
         error_count = 0
@@ -98,10 +100,10 @@ class Metric:
             true_pos_count = true_pos_predict_pos_count_dict[label] + true_pos_predict_neg_count_dict[label]
             accurate = true_pos_predict_pos_count_dict[label] / predict_pos_count if predict_pos_count > 0 else np.nan
             recall = true_pos_predict_pos_count_dict[label] / true_pos_count if true_pos_count > 0 else np.nan
-            accurate_dict[label] = accurate
-            recall_dict[label] = recall
+            accurate_dict[label] = round(accurate, self.decimal)
+            recall_dict[label] = round(recall, self.decimal)
 
-        return total_accurate, total_recall, accurate_dict, recall_dict
+        return round(total_accurate, self.decimal), round(total_recall, self.decimal), accurate_dict, recall_dict
 
     def entity_wise_metric(self, true_label_list, predict_label_list):
         assert len(true_label_list) == len(predict_label_list), 'the lengths of truth and prediction have to be equal.'
@@ -162,10 +164,10 @@ class Metric:
             true_pos_count = true_pos_predict_pos_count_dict[tag] + true_pos_predict_neg_count_dict[tag]
             accurate = true_pos_predict_pos_count_dict[tag] / predict_pos_count if predict_pos_count > 0 else np.nan
             recall = true_pos_predict_pos_count_dict[tag] / true_pos_count if true_pos_count > 0 else np.nan
-            accurate_dict[tag] = accurate
-            recall_dict[tag] = recall
+            accurate_dict[tag] = round(accurate, self.decimal)
+            recall_dict[tag] = round(recall, self.decimal)
 
-        return total_accurate, total_recall, accurate_dict, recall_dict
+        return round(total_accurate, self.decimal), round(total_recall, self.decimal), accurate_dict, recall_dict
 
     def _flatten_batch(self, true_label_list_batch, predict_label_list_batch):
         all_true_label_list = []

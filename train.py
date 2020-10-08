@@ -42,8 +42,8 @@ for i in range(50):
             met.elem_wise_metric_batch(true_label_list_batch=label_batch, predict_label_list_batch=predict_label_batch)
         total_accurate_2, total_recall_2, accurate_dict_2, recall_dict_2 = \
             met.entity_wise_metric_batch(true_label_list_batch=label_batch, predict_label_list_batch=predict_label_batch)
-        print('\n~~ elem   wise: acc %s, rec %s' % (total_accurate, total_recall))
-        print('~~ entity wise: acc %s, rec %s' % (total_accurate_2, total_recall_2))
+        print('\n~~ elem   wise: acc %.6f, rec %.6f' % (total_accurate, total_recall))
+        print('~~ entity wise: acc %.6f, rec %.6f' % (total_accurate_2, total_recall_2))
         print('\n~~ elem   wise: \nacc_detail %s \nrec_detail %s' % (accurate_dict, recall_dict))
         print('~~ entity wise: \nacc_detail %s \nrec_detail %s' % (accurate_dict_2, recall_dict_2))
 
