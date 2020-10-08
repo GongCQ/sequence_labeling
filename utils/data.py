@@ -99,9 +99,12 @@ class LabelTokenizer:
         return seq
 
 class DataSet:
-    def __init__(self, path: str, tokenizer: Tokenizer, batch_size: int, shuffle: bool = True):
+    def __init__(self, path: str,
+                 tokenizer: Tokenizer, label_tokenizer: LabelTokenizer or None,
+                 batch_size: int, shuffle: bool = True):
         '''
         :param path: data file path
+        :param label_tokenizer: LabelTokenizer, may be None.
         :param tokenizer: Tokenizer
         '''
         self.path = path
@@ -115,7 +118,10 @@ class DataSet:
                             for label in self.label_count_dict.keys()
                             if label != OUT_LABEL])
         self.label_set = set(self.label_count_dict.keys())
-        self.label_tokenizer = LabelTokenizer(set(self.label_count_dict.keys()))
+        if label_tokenizer is None:
+            self.label_tokenizer = LabelTokenizer(self.label_set)
+        else:
+            self.label_tokenizer = label_tokenizer
 
         self.seq_ids_list = []
         self.label_ids_list = []
@@ -130,6 +136,13 @@ class DataSet:
             self.seq_ids_list.append(seq_ids)
             self.label_ids_list.append(label_ids)
 
+    def shuffle(self):
+        shuffle_index = list(range(len(self.seq_label_list)))
+        random.shuffle(shuffle_index)
+        self.seq_label_list = self.seq_label_list[shuffle_index]
+        self.seq_ids_list = self.seq_ids_list[shuffle_index]
+        self.label_ids_list = self.label_ids_list[shuffle_index]
+
     def __len__(self):
         return int(np.ceil(len(self.seq_label_list) / self.batch_size))
 
@@ -142,6 +155,11 @@ class DataSet:
                                               min(len(self.seq_ids_list), (batch_index + 1) * self.batch_size)]
         padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch = \
             self._pad_batch(seq_ids_batch=seq_ids_batch, label_ids_batch=label_ids_batch)
+        return padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch
+
+    def get_all_as_batch(self):
+        padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch = \
+            self._pad_batch(seq_ids_batch=self.seq_ids_list, label_ids_batch=self.label_ids_list)
         return padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch
 
     def decode_batch(self, padded_seq_ids_batch, padded_label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch):
@@ -284,3 +302,29 @@ class DataSet:
         for i in range(len(self.seq_label_list[index])):
             if self.seq_label_list[index][i][0] != seq[i] or self.seq_label_list[index][i][1] != label[i]:
                 print(str(self.seq_label_list[index][i]) + ' ' + seq[i] + ' ' + label[i])
+
+class DataSetManager:
+    def __init__(self, path: str, vocab_path: str, batch_size: int, shuffle: bool):
+        '''
+        :param path: a folder contains three files train.txt, test.txt, valid.txt
+        :param vocab_path: a file named vocab.txt
+        :param batch_size:
+        :param shuffle:
+        '''
+        self.path = path
+        self.vocab_path = vocab_path
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        train_file_path = os.path.join(path, 'train.txt')
+        test_file_path = os.path.join(path, 'test.txt')
+        valid_file_path = os.path.join(path, 'valid.txt')
+        self.tokenizer = Tokenizer(path=vocab_path)
+        self.train_data_set = DataSet(path=train_file_path,
+                                      tokenizer=self.tokenizer, label_tokenizer=None,
+                                      batch_size=batch_size, shuffle=shuffle)
+        self.test_data_set = DataSet(path=test_file_path,
+                                     tokenizer=self.tokenizer, label_tokenizer=self.train_data_set.label_tokenizer,
+                                     batch_size=batch_size, shuffle=shuffle)
+        self.valid_data_set = DataSet(path=valid_file_path,
+                                     tokenizer=self.tokenizer, label_tokenizer=self.train_data_set.label_tokenizer,
+                                     batch_size=batch_size, shuffle=shuffle)

@@ -8,7 +8,10 @@ from model.seq_label import SeqLabel
 format = 'bio'
 bert_model_path = './bert_model/pytorch_pretrained_bert/bert-base-chinese/'
 tok = data.Tokenizer(path=os.path.join(bert_model_path, 'vocab.txt'))
-train_data_set = data.DataSet(path='./data/tiny_data/%s/train.txt' % format, tokenizer=tok, batch_size=20, shuffle=False)
+dsm = data.DataSetManager(path='./data/tiny_data/%s' % format,
+                          vocab_path=os.path.join(bert_model_path, 'vocab.txt'),
+                          batch_size=20, shuffle=True)
+train_data_set = dsm.train_data_set
 met = metric.Metric(label_set=train_data_set.label_tokenizer.label_set,
                     tag_set=train_data_set.tag_set, format=format)
 emb_seq_model = EmbSeqBert(bert_model_path=bert_model_path,
@@ -48,6 +51,8 @@ for i in range(50):
         print('~~ entity wise: \nacc_detail %s \nrec_detail %s' % (accurate_dict_2, recall_dict_2))
 
         c += 1
+
+    train_data_set.shuffle()
 
 
 
