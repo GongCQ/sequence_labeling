@@ -44,12 +44,12 @@ class Evaluator:
             self.metric.entity_wise_metric_batch(true_label_list_batch=label_batch,
                                                  predict_label_list_batch=predict_label_batch)
 
-        print('~~ label  wise: prc %.6f, rec %.6f' % (total_accurate, total_recall))
-        print('~~ entity wise: prc %.6f, rec %.6f' % (total_accurate_2, total_recall_2))
+        print('~~ label  wise: precision %.6f, recall %.6f' % (total_accurate, total_recall))
+        print('~~ entity wise: precision %.6f, recall %.6f' % (total_accurate_2, total_recall_2))
 
         if print_detail:
-            print('~~ label  wise: \nprc_detail %s \nrec_detail %s' % (accurate_dict, recall_dict))
-            print('~~ entity wise: \nprc_detail %s \nrec_detail %s' % (accurate_dict_2, recall_dict_2))
+            print('~~ label  wise: \nprecision_detail %s \nrecall_detail %s' % (accurate_dict, recall_dict))
+            print('~~ entity wise: \nprecision_detail %s \nrecall_detail %s' % (accurate_dict_2, recall_dict_2))
 
     def random_eval(self, size, print_detail=False):
         print('random_eval %s ~~~~~~~~ size %s' % (dt.datetime.now(), size))
@@ -58,7 +58,7 @@ class Evaluator:
                                    self.data_set_manager.test_data_set,
                                    self.data_set_manager.valid_data_set]):
             seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch = data_set.get_random_batch(size)
-            print('data set: %s ........' % name)
+            print('%s set ........' % name)
             self.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail)
         print('random_eval %s --------' % dt.datetime.now())
 
