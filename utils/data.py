@@ -3,11 +3,11 @@ import copy
 import random
 import numpy as np
 import pytorch_pretrained_bert as torch_bert
+from utils.config import SEQ_MAX_LEN
 
 # ----------------------------------------------------
 OUT_LABEL = 'O' # immutable
 LABEL_SEP = '-'
-SEQ_MAX_LEN = 250
 PAD_TOKEN = '[PAD]' # immutable
 UNKNOWN_TOKEN = '[UNK]' # immutable
 BEGIN_LABEL = '[B]'
