@@ -6,25 +6,19 @@ import torch.optim as optim
 from model.crf import CRF
 import utils
 from model.emb_seq_bert import EmbSeqBert
+from utils.config import USE_GPU, LEARNING_RATE, WEIGHT_DECAY, MOMENTUM
 
 class SeqLabel(nn.Module):
-    def __init__(self, emb_seq_model, label_num, gpu: bool = False):
+    def __init__(self, emb_seq_model, label_num):
         super(SeqLabel, self).__init__()
         self.emb_seq_model = emb_seq_model
         self.label_num = label_num
-        self.crf = CRF(label_num, gpu=gpu)
+        self.crf = CRF(label_num, gpu=USE_GPU)
 
         # self.optimizer = optim.SGD(self.parameters(), lr=0.01, momentum=0,weight_decay=1e-8)
         # weight_decay越大，参数值越倾向于变小
-        self.optimizer = optim.SGD(params=[
-                                           {'params': self.emb_seq_model.bert_model.parameters(),
-                                            'lr': 0.00001,
-                                            'weight_decay': 0},
-                                           {'params': self.emb_seq_model.full_conn.parameters(),
-                                            'lr': 0.003,
-                                            'weight_decay': 0.01},
-                                           {'params': self.crf.parameters()}],
-                                   lr=0.1, momentum=0,weight_decay=1e-8)
+        params_config = self.emb_seq_model.get_params_config() + [{'params': self.crf.parameters()}]
+        self.optimizer = optim.SGD(params=params_config, lr=LEARNING_RATE, momentum=MOMENTUM,weight_decay=WEIGHT_DECAY)
 
     def forward(self, seq_ids, mask):
         feature_seq = self.emb_seq_model(seq_ids=seq_ids, mask=mask)

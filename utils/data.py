@@ -338,6 +338,7 @@ class DataSetManager:
         self.valid_data_set = DataSet(path=valid_file_path,
                                      tokenizer=self.tokenizer, label_tokenizer=self.train_data_set.label_tokenizer,
                                      batch_size=batch_size, shuffle=shuffle)
+        print(self.train_data_set.info())
 
     def on_epoch_end(self):
         self.train_data_set._regenerate_samples()

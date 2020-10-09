@@ -18,8 +18,7 @@ met = metric.Metric(label_set=train_data_set.label_tokenizer.label_set,
                     tag_set=train_data_set.tag_set, format=config.LABEL_FORMAT)
 
 emb_seq_model = EmbSeqBert(bert_model_path=bert_model_path,
-                           label_num=train_data_set.label_tokenizer.label_num,
-                           trainable=True)
+                           label_num=train_data_set.label_tokenizer.label_num)
 seq_label_model = SeqLabel(emb_seq_model=emb_seq_model,
                            label_num=train_data_set.label_tokenizer.label_num)
 
