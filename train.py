@@ -29,7 +29,7 @@ evaluator = evaluate.Evaluator(model=seq_label_model, data_set_manager=dsm, metr
 for i in range(50):
     c = 0
     for seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch in train_data_set:
-        print('\n\nepoch %s, batch %s ----------------------------------------' % (i, c))
+        print('\nepoch %s, batch %s ----------------------------------------' % (i, c))
         seq_ids_batch_t = torch.Tensor(seq_ids_batch).to(torch.int64)
         label_ids_batch_t = torch.Tensor(label_ids_batch).to(torch.int64)
         seq_ids_mask_batch_t = torch.Tensor(seq_ids_mask_batch).to(torch.bool)
@@ -37,7 +37,7 @@ for i in range(50):
         loss = seq_label_model.train_batch(seq_ids=seq_ids_batch_t,
                                            label_ids=label_ids_batch_t,
                                            mask=seq_ids_mask_batch_t)
-        print('\n~~ loss %s' % str(loss))
+        print('loss %s' % str(loss))
 
         evaluator.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail=False)
 
@@ -47,9 +47,7 @@ for i in range(50):
         c += 1
 
     print()
-    print('full_eval %s ********' % dt.datetime.now())
     evaluator.full_eval()
-    print('full_eval %s --------' % dt.datetime.now())
     dsm.on_epoch_end()
 
 

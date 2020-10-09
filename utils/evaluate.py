@@ -37,30 +37,41 @@ class Evaluator:
             label_batch += label_slice
             predict_label_batch += predict_label_slice
 
-        total_accurate, total_recall, accurate_dict, recall_dict = \
+        total_precision, total_recall, precision_dict, recall_dict = \
             self.metric.label_wise_metric_batch(true_label_list_batch=label_batch,
                                                 predict_label_list_batch=predict_label_batch)
-        total_accurate_2, total_recall_2, accurate_dict_2, recall_dict_2 = \
+        total_precision_2, total_recall_2, precision_dict_2, recall_dict_2 = \
             self.metric.entity_wise_metric_batch(true_label_list_batch=label_batch,
                                                  predict_label_list_batch=predict_label_batch)
 
-        print('~~ label  wise: precision %.6f, recall %.6f' % (total_accurate, total_recall))
-        print('~~ entity wise: precision %.6f, recall %.6f' % (total_accurate_2, total_recall_2))
+        print('label  wise: precision %.6f, recall %.6f' % (total_precision, total_recall))
+        print('entity wise: precision %.6f, recall %.6f' % (total_precision_2, total_recall_2))
 
         if print_detail:
-            print('~~ label  wise: \nprecision_detail %s \nrecall_detail %s' % (accurate_dict, recall_dict))
-            print('~~ entity wise: \nprecision_detail %s \nrecall_detail %s' % (accurate_dict_2, recall_dict_2))
+            print('label wise detail: ')
+            label_list = sorted(list(precision_dict.keys() & recall_dict.keys()))
+            for label in label_list:
+                print('%6s  precision %.6f  recall %.6f' % (label, precision_dict[label], recall_dict[label]))
+            print('entity wise detail: ')
+            entity_list = sorted(list(precision_dict_2.keys() & recall_dict_2.keys()))
+            for entity in entity_list:
+                print('%6s  precision %.6f  recall %.6f' % (entity, precision_dict_2[entity], recall_dict_2[entity]))
 
     def random_eval(self, size, print_detail=False):
-        print('random_eval %s ~~~~~~~~ size %s' % (dt.datetime.now(), size))
+        if size == 0 or size is None:
+            size = sys.maxsize
+        line = 'random_eval --------' if size < sys.maxsize else 'FULL_EVAL ****************'
+        print('%s %s size %s' % (line, dt.datetime.now(), size))
         for name, data_set in zip(['train', 'test', 'valid'],
                                   [self.data_set_manager.train_data_set,
                                    self.data_set_manager.test_data_set,
                                    self.data_set_manager.valid_data_set]):
+            if size == sys.maxsize and name == 'train':
+                continue
             seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch = data_set.get_random_batch(size)
-            print('%s set ........' % name)
+            print('%6s set ....' % name)
             self.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail)
-        print('random_eval %s --------' % dt.datetime.now())
+        print('%s %s size %s' % (line, dt.datetime.now(), size))
 
     def full_eval(self, print_detail=False):
         self.random_eval(sys.maxsize, print_detail)
