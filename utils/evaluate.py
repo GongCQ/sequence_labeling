@@ -37,22 +37,22 @@ class Evaluator:
             label_batch += label_slice
             predict_label_batch += predict_label_slice
 
-        total_precision, total_recall, precision_dict, recall_dict = \
+        total_f_score, total_precision, total_recall, precision_dict, recall_dict = \
             self.metric.label_wise_metric_batch(true_label_list_batch=label_batch,
                                                 predict_label_list_batch=predict_label_batch)
-        total_precision_2, total_recall_2, precision_dict_2, recall_dict_2 = \
+        total_f_score_2, total_precision_2, total_recall_2, precision_dict_2, recall_dict_2 = \
             self.metric.entity_wise_metric_batch(true_label_list_batch=label_batch,
                                                  predict_label_list_batch=predict_label_batch)
 
-        print('label  wise: precision %.6f, recall %.6f' % (total_precision, total_recall))
-        print('entity wise: precision %.6f, recall %.6f' % (total_precision_2, total_recall_2))
+        print('label-wise : precision %.6f, recall %.6f, f_score %s' % (total_precision, total_recall, total_f_score))
+        print('entity-wise: precision %.6f, recall %.6f, f_score %s' % (total_precision_2, total_recall_2, total_f_score_2))
 
         if print_detail:
-            print('label wise detail: ')
+            print('label-wise detail : ')
             label_list = sorted(list(precision_dict.keys() & recall_dict.keys()))
             for label in label_list:
                 print('%6s  precision %.6f  recall %.6f' % (label, precision_dict[label], recall_dict[label]))
-            print('entity wise detail: ')
+            print('entity-wise detail: ')
             entity_list = sorted(list(precision_dict_2.keys() & recall_dict_2.keys()))
             for entity in entity_list:
                 print('%6s  precision %.6f  recall %.6f' % (entity, precision_dict_2[entity], recall_dict_2[entity]))

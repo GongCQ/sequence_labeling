@@ -92,6 +92,8 @@ class Metric:
         true_pos_count = true_pos_predict_pos_count + true_pos_predict_neg_count
         total_precision = true_pos_predict_pos_count / predict_pos_count if predict_pos_count > 0 else np.nan
         total_recall = true_pos_predict_pos_count / true_pos_count if true_pos_count > 0 else np.nan
+        total_f_score = 2 * total_precision * total_recall / (total_precision + total_recall) \
+                        if total_precision + total_recall > 0 else np.nan
 
         precision_dict = {}
         recall_dict = {}
@@ -103,7 +105,8 @@ class Metric:
             precision_dict[label] = round(precision, self.decimal)
             recall_dict[label] = round(recall, self.decimal)
 
-        return round(total_precision, self.decimal), round(total_recall, self.decimal), precision_dict, recall_dict
+        return round(total_f_score, self.decimal), round(total_precision, self.decimal), \
+               round(total_recall, self.decimal), precision_dict, recall_dict
 
     def entity_wise_metric(self, true_label_list, predict_label_list):
         assert len(true_label_list) == len(predict_label_list), 'the lengths of truth and prediction have to be equal.'
@@ -156,6 +159,8 @@ class Metric:
         true_pos_count = true_pos_predict_pos_count + true_pos_predict_neg_count
         total_precision = true_pos_predict_pos_count / predict_pos_count if predict_pos_count > 0 else np.nan
         total_recall = true_pos_predict_pos_count / true_pos_count if true_pos_count > 0 else np.nan
+        total_f_score = 2 * total_precision * total_recall / (total_precision + total_recall) \
+                        if total_precision + total_recall > 0 else np.nan
 
         precision_dict = {}
         recall_dict = {}
@@ -167,7 +172,8 @@ class Metric:
             precision_dict[tag] = round(precision, self.decimal)
             recall_dict[tag] = round(recall, self.decimal)
 
-        return round(total_precision, self.decimal), round(total_recall, self.decimal), precision_dict, recall_dict
+        return round(total_f_score, self.decimal), round(total_precision, self.decimal), \
+               round(total_recall, self.decimal), precision_dict, recall_dict
 
     def _flatten_batch(self, true_label_list_batch, predict_label_list_batch):
         all_true_label_list = []
