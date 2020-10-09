@@ -69,9 +69,9 @@ class Evaluator:
             if size == sys.maxsize and name == 'train':
                 continue
             seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch = data_set.get_random_batch(size)
-            print('%6s set ....' % name)
+            print('.... %6s set ....' % name)
             self.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail)
         print('%s %s size %s' % (line, dt.datetime.now(), size))
 
-    def full_eval(self, print_detail=False):
+    def full_eval(self, print_detail=True):
         self.random_eval(sys.maxsize, print_detail)

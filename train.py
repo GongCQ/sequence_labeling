@@ -39,11 +39,11 @@ for i in range(50):
                                            mask=seq_ids_mask_batch_t)
         print('loss %s' % str(loss))
 
-        evaluator.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail=False)
+        # evaluator.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail=False)
 
         if c % config.EVAL_BATCH_INTERVAL == 0:
             print()
-            evaluator.random_eval(config.EVAL_SIZE)
+            evaluator.random_eval(config.EVAL_SIZE, print_detail=True)
         c += 1
 
     print()
