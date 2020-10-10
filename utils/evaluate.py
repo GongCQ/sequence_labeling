@@ -3,7 +3,7 @@ import datetime as dt
 import torch
 from utils.data import DataSetManager
 from utils.metric import Metric
-from utils.config import BATCH_SIZE
+from utils.config import BATCH_SIZE, USE_GPU
 
 class Evaluator:
     def __init__(self, model, data_set_manager: DataSetManager, metric: Metric):
@@ -22,6 +22,9 @@ class Evaluator:
 
             seq_ids_slice_t = torch.Tensor(seq_ids_slice).to(torch.int64)
             seq_ids_mask_slice_t = torch.Tensor(seq_ids_mask_slice).to(torch.bool)
+            if USE_GPU:
+                seq_ids_slice_t = seq_ids_slice_t.cuda()
+                seq_ids_mask_slice_t = seq_ids_mask_slice_t.cuda()
 
             path_score, predict_label_ids_batch = self.model(seq_ids=seq_ids_slice_t, mask=seq_ids_mask_slice_t)
             seq_slice = \

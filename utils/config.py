@@ -6,7 +6,7 @@ DATA_SET = 'tiny_data' # 'people_daily_1998'
 LABEL_FORMAT = 'bio'
 
 EPOCH_NUM = 50
-BATCH_SIZE = 20
+BATCH_SIZE = 50
 EVAL_BATCH_INTERVAL = 10
 EVAL_SIZE = 100
 

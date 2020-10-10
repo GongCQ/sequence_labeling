@@ -31,6 +31,13 @@ for i in range(config.EPOCH_NUM):
         label_ids_batch_t = torch.Tensor(label_ids_batch).to(torch.int64)
         seq_ids_mask_batch_t = torch.Tensor(seq_ids_mask_batch).to(torch.bool)
         label_ids_mask_batch_t = torch.Tensor(label_ids_mask_batch).to(torch.bool)
+
+        if config.USE_GPU:
+            seq_ids_batch_t = seq_ids_batch_t.cuda()
+            label_ids_batch_t = label_ids_batch_t.cuda()
+            seq_ids_mask_batch_t = seq_ids_mask_batch_t.cuda()
+            label_ids_mask_batch_t = label_ids_mask_batch_t.cuda()
+
         loss = seq_label_model.train_batch(seq_ids=seq_ids_batch_t,
                                            label_ids=label_ids_batch_t,
                                            mask=seq_ids_mask_batch_t)
