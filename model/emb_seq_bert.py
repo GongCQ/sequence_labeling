@@ -18,12 +18,12 @@ class EmbSeqBert(nn.Module):
         self.full_conn = nn.Linear(self.bert_model.config.hidden_size, label_num + 2)
         for param in self.bert_model.parameters():
             param.requires_grad  = BERT_TRAINABLE
-
-        if USE_GPU:
-            self.bert_model = nn.DataParallel(self.bert_model)
-            self.bert_model = self.bert_model.cuda()
-            self.dropout = self.dropout.cuda()
-            self.full_conn = self.full_conn.cuda()
+        #
+        # if USE_GPU:
+        #     self.bert_model = nn.DataParallel(self.bert_model)
+        #     self.bert_model = self.bert_model.cuda()
+        #     self.dropout = self.dropout.cuda()
+        #     self.full_conn = self.full_conn.cuda()
 
     def forward(self, seq_ids, mask):
         '''
