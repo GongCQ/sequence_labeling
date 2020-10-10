@@ -27,6 +27,7 @@ class Evaluator:
                 seq_ids_mask_slice_t = seq_ids_mask_slice_t.cuda()
 
             path_score, predict_label_ids_batch = self.model(seq_ids=seq_ids_slice_t, mask=seq_ids_mask_slice_t)
+            predict_label_ids_batch = predict_label_ids_batch.cpu().numpy()
             seq_slice = \
                 self.data_set_manager.train_data_set.decode_seq_batch(padded_seq_ids_batch=seq_ids_slice,
                                                                       seq_ids_mask_batch=seq_ids_mask_slice)
