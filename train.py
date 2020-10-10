@@ -8,6 +8,7 @@ from model.emb_seq_bert import EmbSeqBert
 from model.seq_label import SeqLabel
 import utils.config as config
 
+config.print_config()
 bert_model_path = './bert_model/pytorch_pretrained_bert/bert-base-chinese/'
 tok = data.Tokenizer(path=os.path.join(bert_model_path, 'vocab.txt'))
 dsm = data.DataSetManager(path='./data/%s/%s' % (config.DATA_SET, config.LABEL_FORMAT),
