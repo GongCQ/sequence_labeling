@@ -15,9 +15,9 @@ class SeqLabel(nn.Module):
         self.label_num = label_num
         self.crf = CRF(label_num, gpu=USE_GPU)
 
-        if USE_GPU:
-            self.emb_seq_model = nn.DataParallel(self.emb_seq_model)
-            self.emb_seq_model = self.emb_seq_model.cuda()
+        # if USE_GPU:
+        #     self.emb_seq_model = nn.DataParallel(self.emb_seq_model)
+        #     self.emb_seq_model = self.emb_seq_model.cuda()
 
         # self.optimizer = optim.SGD(self.parameters(), lr=0.01, momentum=0,weight_decay=1e-8)
         # weight_decay越大，参数值越倾向于变小
