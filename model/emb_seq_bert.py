@@ -20,6 +20,7 @@ class EmbSeqBert(nn.Module):
             param.requires_grad  = BERT_TRAINABLE
 
         if USE_GPU:
+            self.bert_model = nn.DataParallel(self.bert_model)
             self.bert_model = self.bert_model.cuda()
             self.dropout = self.dropout.cuda()
             self.full_conn = self.full_conn.cuda()
