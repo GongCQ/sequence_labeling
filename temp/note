@@ -1,3 +1,4 @@
 1.损失函数的值约20000,发现是crf里面_score_sentence计算的gold_score非常大，原因是我在data里面人为给序列加上了起始和结束符号，在NCRFpp里面起始是没有的。去掉人为的起始结束符号就行了。
 2.在bert后面的全连接层之前加上dropout效果好像会稳定些
 3.bert参数的学习率设置为0.00001，weight_decay为0
+4.用nn.DataParallel会导致“StopIteration: Caught StopIteration in replica 0 on device 0.”错误，参考这里的描述 https://github.com/pytorch/pytorch/issues/40457
