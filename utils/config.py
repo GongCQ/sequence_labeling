@@ -2,7 +2,7 @@ import torch
 
 USE_GPU = torch.cuda.is_available()
 SEQ_MAX_LEN = 250
-DATA_SET = 'tiny_data' # 'people_daily_1998'
+DATA_SET = 'people_daily_1998'
 LABEL_FORMAT = 'bio'
 
 EPOCH_NUM = 50

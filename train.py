@@ -1,3 +1,4 @@
+import sys
 import os
 import datetime as dt
 import torch
@@ -7,6 +8,9 @@ import utils.evaluate as evaluate
 from model.emb_seq_bert import EmbSeqBert
 from model.seq_label import SeqLabel
 import utils.config as config
+
+import codecs
+sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 config.print_config()
 bert_model_path = './bert_model/pytorch_pretrained_bert/bert-base-chinese/'
