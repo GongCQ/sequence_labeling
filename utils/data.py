@@ -1,13 +1,16 @@
 import os
 import copy
 import random
+import csv
 import numpy as np
+import pandas as pd
 import pytorch_pretrained_bert as torch_bert
 from utils.config import SEQ_MAX_LEN
 
 # ----------------------------------------------------
 OUT_LABEL = 'O' # immutable
 LABEL_SEP = '-'
+PAD_INDEX = 0 # immutable
 PAD_TOKEN = '[PAD]' # immutable
 UNKNOWN_TOKEN = '[UNK]' # immutable
 BEGIN_LABEL = '[B]'
@@ -342,3 +345,14 @@ class DataSetManager:
 
     def on_epoch_end(self):
         self.train_data_set._regenerate_samples()
+
+def get_char_emb_array(char_emb_path, tokenizer: Tokenizer):
+    char_emb_df = pd.read_csv(char_emb_path, index_col=0, header=None, sep=' ',
+                              error_bad_lines=False, quoting=csv.QUOTE_NONE, encoding='utf-8')
+    vocab_size = len(tokenizer.tokenizer.vocab)
+    emb_size = char_emb_df.shape[1]
+    emb_array = np.zeros([vocab_size, emb_size], dtype=float)
+    for char, index in tokenizer.tokenizer.vocab.items():
+        if char in char_emb_df.index:
+            emb_array[index, :] = char_emb_df.loc[char, :].values
+    return emb_array

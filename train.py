@@ -6,6 +6,7 @@ import utils.data as data
 import utils.metric as metric
 import utils.evaluate as evaluate
 from model.emb_seq_bert import EmbSeqBert
+from model.emb_seq_lstm import EmbSeqLSTM
 from model.seq_label import SeqLabel
 import utils.config as config
 
@@ -22,8 +23,13 @@ train_data_set = dsm.train_data_set
 met = metric.Metric(label_set=train_data_set.label_tokenizer.label_set,
                     tag_set=train_data_set.tag_set, format=config.LABEL_FORMAT)
 
-emb_seq_model = EmbSeqBert(bert_model_path=bert_model_path,
-                           label_num=train_data_set.label_tokenizer.label_num)
+# -----------------------
+# emb_seq_model = EmbSeqBert(bert_model_path=bert_model_path,
+#                            label_num=train_data_set.label_tokenizer.label_num)
+# .......................
+emb_array = data.get_char_emb_array(os.path.join('word_emb', 'char_emb_300d_nl2sql.txt'), tok)
+emb_seq_model = EmbSeqLSTM(emb_array=emb_array, label_num=train_data_set.label_tokenizer.label_num)
+# -----------------------
 seq_label_model = SeqLabel(emb_seq_model=emb_seq_model,
                            label_num=train_data_set.label_tokenizer.label_num)
 
@@ -46,7 +52,7 @@ for i in range(config.EPOCH_NUM):
         loss = seq_label_model.train_batch(seq_ids=seq_ids_batch_t,
                                            label_ids=label_ids_batch_t,
                                            mask=seq_ids_mask_batch_t)
-
+        print('%s epoch %s, batch %s, loss %s.' % (dt.datetime.now(),i, c, loss))
         if c % config.EVAL_BATCH_INTERVAL == 0:
             print('\nepoch %s, batch %s， %s ----------------------------------------' % (i, c, dt.datetime.now()))
             print('loss %s' % str(loss))

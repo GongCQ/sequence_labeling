@@ -2,13 +2,13 @@ import torch
 
 USE_GPU = torch.cuda.is_available()
 SEQ_MAX_LEN = 250
-DATA_SET = 'people_daily_1998'
+DATA_SET = 'people_daily_1998' # 'tiny_data'
 LABEL_FORMAT = 'bio'
 
 EPOCH_NUM = 50
-BATCH_SIZE = 50
-EVAL_BATCH_INTERVAL = 10
-EVAL_SIZE = 500
+BATCH_SIZE = 100
+EVAL_BATCH_INTERVAL = 100
+EVAL_SIZE = 100
 
 LEARNING_RATE = 0.1
 MOMENTUM = 0
