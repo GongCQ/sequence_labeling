@@ -7,6 +7,19 @@ import os
 import utils.metric
 import copy
 import random
+import torch
+
+t = torch.Tensor([[1,2,3], [3,4,5]])
+t2 = torch.Tensor([[5,6], [4,5]])
+for tt1, tt2 in zip(t, t2):
+    print(tt1)
+    print(tt2)
+    print(int(tt1.sum()))
+    print()
+print(len(t))
+exit(2)
+
+
 
 # -----------------------------------------------------------
 format = 'bioes'
