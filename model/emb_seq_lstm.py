@@ -34,6 +34,11 @@ class EmbSeqLSTM(nn.Module):
                             bidirectional=False)
         self.full_conn = nn.Linear(self.hidden_size, label_num + 2)
 
+        if USE_GPU:
+            self.emb = self.emb.cuda()
+            self.lstm = self.lstm.cuda()
+            self.full_conn = self.full_conn.cuda()
+
     def forward(self, seq_ids, mask):
         '''
         :param seq_ids: tensor, shape [batch_size * seq_len], with char id selected in [0, 1, 2, ..., vocab_size - 1]
