@@ -78,7 +78,7 @@ class CharLattice:
 
             if print_result:
                 align_df = pd.DataFrame(data=[[''] * len(text)] * (1 + len(fraction_list)), columns=list(range(len(text))))
-                align_df.iloc[0, :] = list(text)
+                align_df.iloc[0, :] = char_list
                 for i in range(len(fraction_list)):
                     fraction = fraction_list[i]
                     for j in range(len(fraction[0])):
