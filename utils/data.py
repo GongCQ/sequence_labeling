@@ -382,7 +382,7 @@ class WordTokenizer:
         return self.word_id_dict.get(word, 1)
 
     def get_word(self, id):
-        return self.word_id_pair_list[id][0] if id < len(self.word_id_pair_list) else 1
+        return self.word_id_pair_list[id][0] if id < len(self.word_id_pair_list) else self.unknown_token
 
     def vocab_size(self):
         return len(self.word_id_pair_list)

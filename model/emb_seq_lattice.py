@@ -52,25 +52,20 @@ class CharLattice:
                     current_max_begin = last_begin + last_len
                     current_len = len(current_word)
                     current_matched_begin = current_max_begin
-                    # -------------------------
-                    # for i in range(1, min(current_len, last_len) + 1):
-                    #     current_try_begin = current_max_begin - i
-                    #     if text[current_try_begin : current_try_begin + current_len] == current_word and \
-                    #         last_word[last_len - i : ] == current_word[ : i]:
-                    #         current_matched_begin = current_try_begin
-                    # .........................
                     for i in range(1, max(current_len, last_len) + 1):
                         current_try_begin = current_max_begin - i
+                        last_end = min(last_len, last_len - i + current_len)
+                        current_end = min(current_len, i)
                         if text[current_try_begin : current_try_begin + current_len] == current_word and \
-                            last_word[last_len - i : min(last_len, last_len - i + current_len)] == current_word[ : min(current_len, i)]:
+                            last_word[last_len - i : last_end] == current_word[ : current_end] and \
+                            (last_len > i or last_len == i and current_len > last_len):
                             current_matched_begin = current_try_begin
-
-                    # -------------------------
                     fraction_list.append((current_word, current_matched_begin))
-                if len(fraction_list[-1][0]) + fraction_list[-1][1] != len(text):
-                    warnings.warn('generate an invalid fraction_list when cut_all is True.\n%s\n%s' %
-                                  (text, fraction_list))
-                    cut_all_fail = True
+                for fraction in fraction_list:
+                    if fraction[0] != text[fraction[1]: fraction[1] + len(fraction[0])]:
+                        warnings.warn('check format error.\n%s\n%s' % (text, fraction_list))
+                        cut_all_fail = True
+                        break
 
             if not self.cut_all or cut_all_fail:
                 seg = [s for s in jieba.cut(text, cut_all=False)]
@@ -82,16 +77,25 @@ class CharLattice:
             fraction_list_batch.append(fraction_list)
 
             if print_result:
-                align_df = pd.DataFrame(data=[[''] * len(text)] * len(fraction_list), columns=list(text))
+                align_df = pd.DataFrame(data=[[''] * len(text)] * (1 + len(fraction_list)), columns=list(range(len(text))))
+                align_df.iloc[0, :] = list(text)
                 for i in range(len(fraction_list)):
                     fraction = fraction_list[i]
                     for j in range(len(fraction[0])):
-                        align_df.iloc[i, fraction[1] + j] = fraction[0][j]
-                # print('~align~: ' + str(fraction_list))
-                # print(align_df)
+                        align_df.iloc[i + 1, fraction[1] + j] = fraction[0][j]
+                for col in align_df.columns:
+                    col_chars = align_df[col].values
+                    if ''.join(col_chars[col_chars != align_df[col].iloc[0]]) != '':
+                        warnings.warn('invalid element in align_df.\n%s\n%s' % (text, fraction_list))
                 align_df.to_csv('temp/' + text[ : min(50, len(text))] + '.csv')
 
-        return fraction_list_batch
+        lattice_seq_batch = []
+        for fraction_list in fraction_list_batch:
+            lattice_seq = [(fraction[1], len(fraction[0]), self.word_tokenizer.get_id(fraction[0]))
+                           for fraction in fraction_list]
+            lattice_seq_batch.append(lattice_seq)
+
+        return lattice_seq_batch
 
 
 if __name__ == '__main__':
@@ -107,10 +111,11 @@ if __name__ == '__main__':
         ids = tok.encode(list(text))
         ids_batch = torch.Tensor([ids]).long()
         mask_batch = torch.Tensor([[1] * len(ids)]).long()
-        cl.to_lattice(ids_batch, mask_batch, print_result=False)
+        cl.to_lattice(ids_batch, mask_batch, print_result=True)
         count += 1
     dt2 = dt.datetime.now()
     print((dt2 - dt1).total_seconds())
     print((dt2 - dt1).total_seconds() / count)
+    print(count)
 
 
