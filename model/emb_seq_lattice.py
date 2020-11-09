@@ -23,6 +23,7 @@ class CharLattice:
         self.tokenizer = tokenizer
         self.word_tokenizer = word_tokenizer
         self.cut_all = cut_all
+        self.search_forward_len = 4
 
     def to_lattice(self, seq_ids, mask, print_result=False):
         '''
@@ -52,7 +53,7 @@ class CharLattice:
                     current_max_begin = last_begin + last_len
                     current_len = len(current_word)
                     current_matched_begin = current_max_begin
-                    for i in range(1, max(current_len, last_len) + 1):
+                    for i in range(1, max(current_len, last_len) + 1):  # search backward
                         current_try_begin = current_max_begin - i
                         last_end = min(last_len, last_len - i + current_len)
                         current_end = min(current_len, i)
@@ -60,6 +61,11 @@ class CharLattice:
                             last_word[last_len - i : last_end] == current_word[ : current_end] and \
                             (last_len > i or last_len == i and current_len > last_len):
                             current_matched_begin = current_try_begin
+                    if text[current_matched_begin : current_matched_begin + current_len] != current_word:
+                        for i in range(1, self.search_forward_len):
+                            current_matched_begin += 1
+                            if text[current_matched_begin: current_matched_begin + current_len] == current_word:
+                                break
                     fraction_list.append((current_word, current_matched_begin))
                 for fraction in fraction_list:
                     if fraction[0] != text[fraction[1]: fraction[1] + len(fraction[0])]:
@@ -111,7 +117,7 @@ if __name__ == '__main__':
         ids = tok.encode(list(text))
         ids_batch = torch.Tensor([ids]).long()
         mask_batch = torch.Tensor([[1] * len(ids)]).long()
-        cl.to_lattice(ids_batch, mask_batch, print_result=True)
+        cl.to_lattice(ids_batch, mask_batch, print_result=False)
         count += 1
     dt2 = dt.datetime.now()
     print((dt2 - dt1).total_seconds())
