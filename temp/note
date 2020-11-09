@@ -2,3 +2,6 @@
 2.在bert后面的全连接层之前加上dropout效果好像会稳定些
 3.bert参数的学习率设置为0.00001，weight_decay为0
 4.用nn.DataParallel会导致“StopIteration: Caught StopIteration in replica 0 on device 0.”错误，参考这里的描述 https://github.com/pytorch/pytorch/issues/40457
+5.torch中的Quantization技术：https://pytorch.org/docs/stable/quantization.html?highlight=quantized
+    https://pytorch.org/docs/stable/torch.nn.quantized.html?highlight=quantized#module-torch.nn.quantized
+
