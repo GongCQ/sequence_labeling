@@ -7,10 +7,13 @@ import torch
 import torch.nn as nn
 from utils.config import *
 from utils.data import PAD_INDEX
+import model.lstm_ as lstm_
+
+LSTM = lstm_.LSTM_ # nn.LSTM
 
 class EmbSeqLSTM(nn.Module):
     def __init__(self, emb_array, label_num,
-                 emb_trainable=True, emb_max_norm=1, hidden_size=100, dropout=0.5, bidirectional=True,
+                 emb_trainable=True, emb_max_norm=1, hidden_size=100, dropout=0.5, bidirectional=False,
                  emb_learning_rate=0.001, lstm_learning_rate=0.01, full_conn_learning_rate=0.01):
         '''
         :param emb_array: a 2-D array with shape [vocab_size, emb_size], which is obtained from data.get_char_emb_array
@@ -29,7 +32,7 @@ class EmbSeqLSTM(nn.Module):
                                                 padding_idx=PAD_INDEX, max_norm=emb_max_norm)
         self.emb.requires_grad_(emb_trainable)
         self.char_emb_size = emb_array.shape[1]
-        self.lstm = nn.LSTM(input_size=self.char_emb_size, hidden_size=hidden_size,
+        self.lstm = LSTM(input_size=self.char_emb_size, hidden_size=hidden_size,
                             num_layers=1, bias=True, batch_first=True, dropout=dropout,
                             bidirectional=bidirectional)
         self.full_conn = nn.Linear(self.hidden_size * (2 if bidirectional else 1), label_num + 2)
