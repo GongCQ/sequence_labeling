@@ -48,31 +48,59 @@ class LSTM_(nn.Module):
         if h_c_0 is not None:
             h_0, c_0 = h_c_0
         else:
-            h_0 = torch.zeros([batch_size, self.hidden_size])
-            c_0 = torch.zeros([batch_size, self.hidden_size])
+            full_hidden_size = self.hidden_size * (2 if self.bidirectional else 1)
+            h_0 = torch.zeros([batch_size, full_hidden_size])
+            c_0 = torch.zeros([batch_size, full_hidden_size])
         if self.batch_first:
             input = input.transpose(0, 1)
-        h = h_0
-        c = c_0
-        hidden_list = []
-        for s, x in enumerate(input):
-            h, c = self.cell(x, (h, c))
-            if self.dropout_prob > 0 and s < input.shape[0] - 1:
-                h = self.dropout(h)
-                c = self.dropout(c)
-            hidden_list.append(h)
-        output = torch.stack(hidden_list)
+        if not self.bidirectional:
+            h = h_0
+            c = c_0
+            hidden_list = []
+            for s, x in enumerate(input):
+                h, c = self.cell(x, (h, c))
+                if self.dropout_prob > 0 and s < input.shape[0] - 1:
+                    h = self.dropout(h)
+                    c = self.dropout(c)
+                hidden_list.append(h)
+            output = torch.stack(hidden_list)
+        else:
+            h_forward = h_0[:, : self.hidden_size]
+            c_forward = c_0[:, : self.hidden_size]
+            h_back = h_0[:, self.hidden_size : ]
+            c_back = c_0[:, self.hidden_size : ]
+            hidden_list_forward = []
+            hidden_list_back = []
+            for s in range(input.shape[0]):
+                x_forward = input[s]
+                x_back = input[input.shape[0] - s - 1]
+                h_forward, c_forward = self.cell(x_forward, (h_forward, c_forward))
+                h_back, c_back = self.cell(x_back, (h_back, c_back))
+                if self.dropout_prob > 0 and s < input.shape[0] - 1:
+                    h_forward = self.dropout(h_forward)
+                    c_forward = self.dropout(c_forward)
+                    h_back = self.dropout(h_back)
+                    c_back = self.dropout(c_back)
+                hidden_list_forward.append(h_forward)
+                hidden_list_back.append(h_back)
+            h = torch.cat([h_forward, h_back], dim=1)
+            c = torch.cat([c_forward, c_back], dim=1)
+            hidden_list_back.reverse()
+            output_forward = torch.stack(hidden_list_forward)
+            output_back = torch.stack(hidden_list_back)
+            output = torch.cat([output_forward, output_back], dim=2)
+
         if self.batch_first:
             output = output.transpose(0, 1)
-
 
         return output, (h, c)
 
 
 
 
-t1 = torch.Tensor([1,2,3])
-t2 = torch.Tensor([1,2,3])
-z = torch.zeros([3,4])
-t = t1 * t2
-dd = 0
+# t1 = torch.Tensor([1,2,3])
+# t2 = torch.Tensor([1,2,3])
+# i = torch.inverse(t1)
+# z = torch.zeros([3,4])
+# t = t1 * t2
+# dd = 0
