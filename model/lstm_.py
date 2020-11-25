@@ -14,6 +14,16 @@ class LSTMCell_(nn.Module):
         self.linear_h_g = nn.Linear(hidden_size, hidden_size, bias=bias)
         self.linear_i_o = nn.Linear(input_size, hidden_size, bias=bias)
         self.linear_h_o = nn.Linear(hidden_size, hidden_size, bias=bias)
+        if USE_GPU:
+            self.linear_i_i = self.linear_i_i.cuda()
+            self.linear_h_i = self.linear_h_i.cuda()
+            self.linear_i_f = self.linear_i_f.cuda()
+            self.linear_h_f = self.linear_h_f.cuda()
+            self.linear_i_g = self.linear_i_g.cuda()
+            self.linear_h_g = self.linear_h_g.cuda()
+            self.linear_i_o = self.linear_i_o.cuda()
+            self.linear_h_o = self.linear_h_o.cuda()
+
 
     def forward(self, input, h_c_0):
         h_0, c_0 = h_c_0
@@ -44,6 +54,9 @@ class LSTM_(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, input, h_c_0=None):
+        if USE_GPU:
+            input = input.cuda()
+
         batch_size = input.shape[0] if self.batch_first else input.shape[1]
         if h_c_0 is not None:
             h_0, c_0 = h_c_0
@@ -51,6 +64,9 @@ class LSTM_(nn.Module):
             full_hidden_size = self.hidden_size * (2 if self.bidirectional else 1)
             h_0 = torch.zeros([batch_size, full_hidden_size])
             c_0 = torch.zeros([batch_size, full_hidden_size])
+        if USE_GPU:
+            h_0 = h_0.cuda()
+            c_0 = c_0.cuda()
         if self.batch_first:
             input = input.transpose(0, 1)
         if not self.bidirectional:
