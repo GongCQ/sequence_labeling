@@ -91,7 +91,7 @@ class LSTM_(nn.Module):
                 x_forward = input[s]
                 x_back = input[input.shape[0] - s - 1]
                 h_forward, c_forward = self.cell(x_forward, (h_forward, c_forward))
-                h_back, c_back = self.cell(x_back, (h_back, c_back))
+                h_back, c_back = self.cell_back(x_back, (h_back, c_back))
                 if self.dropout_prob > 0 and s < input.shape[0] - 1:
                     h_forward = self.dropout(h_forward)
                     c_forward = self.dropout(c_forward)
