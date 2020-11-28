@@ -11,7 +11,7 @@ import model.lstm_ as lstm_
 
 class EmbSeqLSTM(nn.Module):
     def __init__(self, emb_array, label_num,
-                 emb_trainable=True, emb_max_norm=1, hidden_size=100, dropout=0.5, bidirectional=True,
+                 emb_trainable=True, emb_max_norm=1, hidden_size=100, dropout=0.5, bidirectional=False,
                  emb_learning_rate=0.001, lstm_learning_rate=0.01, full_conn_learning_rate=0.01, default_lstm=False):
         '''
         :param emb_array: a 2-D array with shape [vocab_size, emb_size], which is obtained from data.get_char_emb_array

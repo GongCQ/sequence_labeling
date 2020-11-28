@@ -36,6 +36,8 @@ class LSTMCell_(nn.Module):
 
         return (h_1, c_1)
 
+LSTMCell = nn.LSTMCell
+
 class LSTM_(nn.Module):
     def __init__(self,input_size, hidden_size, num_layers=1, bias=True,
                  batch_first=True, dropout=0, bidirectional=False):
@@ -48,9 +50,10 @@ class LSTM_(nn.Module):
         self.dropout_prob = dropout
         self.bidirectional = bidirectional
 
-        self.cell = LSTMCell_(input_size, hidden_size, bias=bias)
+        self.cell = LSTMCell(input_size, hidden_size, bias=bias)
         if bidirectional:
-            self.cell_back = LSTMCell_(input_size, hidden_size, bias=bias)
+            self.cell_back = LSTMCell(input_size, hidden_size, bias=bias)
+        print('type of cell %s' % type(self.cell))
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, input, h_c_0=None):
@@ -76,9 +79,10 @@ class LSTM_(nn.Module):
             for s, x in enumerate(input):
                 h, c = self.cell(x, (h, c))
                 if self.dropout_prob > 0 and s < input.shape[0] - 1:
-                    h = self.dropout(h)
-                    c = self.dropout(c)
-                hidden_list.append(h)
+                    h_out = self.dropout(h)
+                else:
+                    h_out = h
+                hidden_list.append(h_out)
             output = torch.stack(hidden_list)
         else:
             h_forward = h_0[:, : self.hidden_size]
@@ -93,12 +97,13 @@ class LSTM_(nn.Module):
                 h_forward, c_forward = self.cell(x_forward, (h_forward, c_forward))
                 h_back, c_back = self.cell_back(x_back, (h_back, c_back))
                 if self.dropout_prob > 0 and s < input.shape[0] - 1:
-                    h_forward = self.dropout(h_forward)
-                    c_forward = self.dropout(c_forward)
-                    h_back = self.dropout(h_back)
-                    c_back = self.dropout(c_back)
-                hidden_list_forward.append(h_forward)
-                hidden_list_back.append(h_back)
+                    h_forward_out = self.dropout(h_forward)
+                    h_back_out = self.dropout(h_back)
+                else:
+                    h_forward_out = h_forward
+                    h_back_out = h_back
+                hidden_list_forward.append(h_forward_out)
+                hidden_list_back.append(h_back_out)
             h = torch.cat([h_forward, h_back], dim=1)
             c = torch.cat([c_forward, c_back], dim=1)
             hidden_list_back.reverse()
