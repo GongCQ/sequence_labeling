@@ -37,6 +37,7 @@ class LSTMCell_(nn.Module):
         return (h_1, c_1)
 
 LSTMCell = LSTMCell_ # nn.LSTMCell
+DROP_ALL_H = True
 
 class LSTM_(nn.Module):
     def __init__(self,input_size, hidden_size, num_layers=1, bias=True,
@@ -54,6 +55,8 @@ class LSTM_(nn.Module):
         if bidirectional:
             self.cell_back = LSTMCell(input_size, hidden_size, bias=bias)
         print('type of cell %s' % type(self.cell))
+        print('drop_all_h %s' % DROP_ALL_H)
+        print('bidirectional %s' % bidirectional)
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, input, h_c_0=None):
@@ -82,6 +85,8 @@ class LSTM_(nn.Module):
                     h_out = self.dropout(h)
                 else:
                     h_out = h
+                if DROP_ALL_H:
+                    h = h_out
                 hidden_list.append(h_out)
             output = torch.stack(hidden_list)
         else:
@@ -102,6 +107,9 @@ class LSTM_(nn.Module):
                 else:
                     h_forward_out = h_forward
                     h_back_out = h_back
+                if DROP_ALL_H:
+                    h_forward = h_forward_out
+                    h_back = h_back_out
                 hidden_list_forward.append(h_forward_out)
                 hidden_list_back.append(h_back_out)
             h = torch.cat([h_forward, h_back], dim=1)
