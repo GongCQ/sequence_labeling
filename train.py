@@ -52,7 +52,7 @@ for i in range(config.EPOCH_NUM):
         loss = seq_label_model.train_batch(seq_ids=seq_ids_batch_t,
                                            label_ids=label_ids_batch_t,
                                            mask=seq_ids_mask_batch_t)
-        print('%s epoch %s, batch %s, loss %s.' % (dt.datetime.now(),i, c, loss))
+        # print('%s epoch %s, batch %s, loss %s.' % (dt.datetime.now(),i, c, loss))
         if c % config.EVAL_BATCH_INTERVAL == 0:
             print('\nepoch %s, batch %s， %s ----------------------------------------' % (i, c, dt.datetime.now()))
             print('loss %s' % str(loss))

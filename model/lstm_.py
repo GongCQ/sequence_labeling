@@ -36,7 +36,7 @@ class LSTMCell_(nn.Module):
 
         return (h_1, c_1)
 
-LSTMCell = nn.LSTMCell
+LSTMCell = LSTMCell_ # nn.LSTMCell
 
 class LSTM_(nn.Module):
     def __init__(self,input_size, hidden_size, num_layers=1, bias=True,
