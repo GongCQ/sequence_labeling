@@ -5,3 +5,21 @@
 5.torch中的Quantization技术：https://pytorch.org/docs/stable/quantization.html?highlight=quantized
     https://pytorch.org/docs/stable/torch.nn.quantized.html?highlight=quantized#module-torch.nn.quantized
 
+自己的lstm和torch的lstm的对比：
+my_lstm       : ml   (自己的lstm，否则torch的lstm)
+my_cell       : mc   (自己的lstmcell，否则torch的lstmcell)
+dropout_h_out : dho  (对输出的h作dropout，否则不作dropout)
+dropout_h_next: dhn  (对传到下一个单元的h作dropout，否则不作dropout)
+dropout_c_next: dcn  (对传到下一个单元的c作dropout，否则不作dropout)
+dropout       : d    (dropout概率，全部取0.5)
+bidirectional : bid  (双向lstm，否则单向lstm)
+epoch = 48, dropout = 0.5
+my_lstm, my_cell, dropout_h_out, dropout_h_next, dropout_c_next, bidirectional,       f1
+      1,       1,             1,              0,              0,             0, 0.810074
+      1,       1,             1,              1,              0,             0, 0.768115
+      1,       1,             1,              0,              0,             1, 0.856157
+      1,       1,             1,              1,              0,             1, 0.823424
+      1,       0,             1,              0,              0,             0,
+      1,       0,             1,              0,              0,             1,
+      0,       0,             x,              x,              x,             0, 0.863249
+      0,       0,             x,              x,              x,             1, 0.894212

@@ -9,6 +9,12 @@ import copy
 import random
 import torch
 
+t1 = torch.Tensor([[1,2,3], [3,4,5]])
+t2 = torch.Tensor([1,2, 9])
+t = t1 / t2
+print(t.detach().numpy())
+exit(0)
+
 t = torch.Tensor([[1,2,3], [3,4,5]])
 t2 = torch.Tensor([[5,6], [4,5]])
 for tt1, tt2 in zip(t, t2):

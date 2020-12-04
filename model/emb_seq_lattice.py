@@ -5,6 +5,7 @@ import pandas as pd
 import jieba
 import torch
 import torch.nn as nn
+from utils.config import *
 from utils.data import Tokenizer, WordTokenizer
 
 pd.set_option('display.max_rows', 1000)
@@ -102,6 +103,106 @@ class CharLattice:
             lattice_seq_batch.append(lattice_seq)
 
         return lattice_seq_batch
+
+class LatticeWordCell(nn.Module):
+    def __init__(self, input_size, hidden_size, bias=True):
+        '''
+        equation(13)
+        :param input_size:
+        :param hidden_size:
+        :param bias:
+        '''
+        super(LatticeWordCell, self).__init__()
+        self.linear_i_i = nn.Linear(input_size, hidden_size, bias=bias)
+        self.linear_h_i = nn.Linear(hidden_size, hidden_size, bias=bias)
+        self.linear_i_f = nn.Linear(input_size, hidden_size, bias=bias)
+        self.linear_h_f = nn.Linear(hidden_size, hidden_size, bias=bias)
+        self.linear_i_g = nn.Linear(input_size, hidden_size, bias=bias)
+        self.linear_h_g = nn.Linear(hidden_size, hidden_size, bias=bias)
+        if USE_GPU:
+            self.linear_i_i = self.linear_i_i.cuda()
+            self.linear_h_i = self.linear_h_i.cuda()
+            self.linear_i_f = self.linear_i_f.cuda()
+            self.linear_h_f = self.linear_h_f.cuda()
+            self.linear_i_g = self.linear_i_g.cuda()
+            self.linear_h_g = self.linear_h_g.cuda()
+
+    def forward(self, x_b_e_w, h_b_c, c_b_c):
+        i_b_e_w = torch.sigmoid(self.linear_i_i(x_b_e_w) + self.linear_h_i(h_b_c))
+        f_b_e_w = torch.sigmoid(self.linear_i_f(x_b_e_w) + self.linear_h_f(h_b_c))
+        g_b_e_w = torch.tanh(self.linear_i_g(x_b_e_w) + self.linear_h_g(h_b_c))
+        c_b_e_w = f_b_e_w * c_b_c + i_b_e_w * g_b_e_w
+        return c_b_e_w
+
+
+class LatticeCharCell(nn.Module):
+    def __init__(self, input_size, hidden_size, bias=True):
+        super(LatticeCharCell, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+
+        self.linear_i_i = nn.Linear(input_size, hidden_size, bias=bias)
+        self.linear_h_i = nn.Linear(hidden_size, hidden_size, bias=bias)
+        self.linear_i_f = nn.Linear(input_size, hidden_size, bias=bias)
+        self.linear_h_f = nn.Linear(hidden_size, hidden_size, bias=bias)
+        self.linear_i_g = nn.Linear(input_size, hidden_size, bias=bias)
+        self.linear_h_g = nn.Linear(hidden_size, hidden_size, bias=bias)
+        self.linear_i_o = nn.Linear(input_size, hidden_size, bias=bias)
+        self.linear_h_o = nn.Linear(hidden_size, hidden_size, bias=bias)
+
+        # linear_l_x and linear_l_c is the parameters in equation(14)
+        self.linear_l_x = nn.Linear(input_size, hidden_size, bias=bias)
+        self.linear_l_c = nn.Linear(hidden_size, hidden_size, bias=bias)
+
+        if USE_GPU:
+            self.linear_i_i = self.linear_i_i.cuda()
+            self.linear_h_i = self.linear_h_i.cuda()
+            self.linear_i_f = self.linear_i_f.cuda()
+            self.linear_h_f = self.linear_h_f.cuda()
+            self.linear_i_g = self.linear_i_g.cuda()
+            self.linear_h_g = self.linear_h_g.cuda()
+            self.linear_i_o = self.linear_i_o.cuda()
+            self.linear_h_o = self.linear_h_o.cuda()
+
+            self.linear_l_x = self.linear_l_x.cuda()
+            self.linear_l_c = self.linear_l_c.cuda()
+
+    def forward(self, input, h_c_0, all_c_b_e_w, all_num_word):
+        '''
+        :param input: current char embedding, also known as x_e_c in equation(14)
+        :param h_c_0: tuple, previous hidden state and cell state.
+        :param all_c_b_e_w: [batch_size, max_num_word, hidden_size],
+                            in which max_num_word is the number of the words those ending at e.
+        :param all_num_word: [batch_size], how many words is ending at e.
+        :return:
+        '''
+        x_e_c = input  # x_e_c in equation(14)
+        h_0, c_0 = h_c_0
+        i = torch.sigmoid(self.linear_i_i(input) + self.linear_h_i(h_0))
+        f = torch.sigmoid(self.linear_i_f(input) + self.linear_h_f(h_0))
+        g = torch.tanh(self.linear_i_g(input) + self.linear_h_g(h_0))
+        o = torch.sigmoid(self.linear_i_o(input) + self.linear_h_o(h_0))
+        # -----------------
+        # c_1 = f * c_0 + i * g
+        # .................
+        batch_c_j_c = torch.zeros(all_c_b_e_w.shape[0], self.hidden_size)
+        for batch, num_word in enumerate(all_num_word):
+            c_b_e_w = all_c_b_e_w[batch, : num_word, :] # [num_word, hidden_size]
+            i_b_e_c = torch.sigmoid(self.linear_l_x(x_e_c[batch, :]) + self.linear_l_c(c_b_e_w)) # [num_word, hidden_size], equation(14)
+            exp_i_b_e_c = torch.exp(i_b_e_c) # [num_word, hidden_size]
+            sum_exp_i_b_j_c = torch.sum(exp_i_b_e_c, dim=0) # [hidden_size]
+            exp_i_j_c = torch.exp(i[batch, :]) # [hidden_size]
+            denominator_in_equation_16 = exp_i_j_c + sum_exp_i_b_j_c # [hidden_size]
+            alpha_b_j_c = exp_i_b_e_c / denominator_in_equation_16  # [num_word, hidden_size], the first line in equation(16)
+            alpha_j_c = exp_i_j_c / denominator_in_equation_16 # [hidden_size], the second line in equation(16)
+
+            c_j_c = torch.sum(alpha_b_j_c * c_b_e_w, dim=0) + alpha_j_c * g[batch, :] # [hidden_size], equation(15)
+            batch_c_j_c[batch, :] = c_j_c
+        # -----------------
+        h_1 = o * torch.tanh(batch_c_j_c)
+
+        return (h_1, batch_c_j_c)
+
 
 
 if __name__ == '__main__':
