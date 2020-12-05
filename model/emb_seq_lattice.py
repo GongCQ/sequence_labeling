@@ -6,7 +6,7 @@ import jieba
 import torch
 import torch.nn as nn
 from utils.config import *
-from utils.data import Tokenizer, WordTokenizer
+from utils.data import Tokenizer, WordTokenizer, get_word_emb_array, get_char_emb_array
 
 pd.set_option('display.max_rows', 1000)
 pd.set_option('display.max_columns', 1000)
@@ -19,7 +19,7 @@ pd.set_option('display.unicode.east_asian_width', True)
 # ['工信处', '处女', '女干事', '干事', '每月', '月经', '经过', '下属', '科室', '都', '要', '亲口', '口交', '交代', '24', '口交', '交换', '交换机', '换机', '等', '技术', '技术性', '性器', '器件', '的', '安装', '安装工', '装工', '工作']
 
 
-class CharLattice:
+class Lattice:
     def __init__(self, tokenizer: Tokenizer, word_tokenizer: WordTokenizer, cut_all=True):
         self.tokenizer = tokenizer
         self.word_tokenizer = word_tokenizer
@@ -173,7 +173,7 @@ class LatticeCharCell(nn.Module):
         :param h_c_0: tuple, previous hidden state and cell state.
         :param all_c_b_e_w: [batch_size, max_num_word, hidden_size],
                             in which max_num_word is the number of the words those ending at e.
-        :param all_num_word: [batch_size], how many words is ending at e.
+        :param all_num_word: list, [batch_size], indicate how many words is ending at e.
         :return:
         '''
         x_e_c = input  # x_e_c in equation(14)
@@ -187,22 +187,90 @@ class LatticeCharCell(nn.Module):
         # .................
         batch_c_j_c = torch.zeros(all_c_b_e_w.shape[0], self.hidden_size)
         for batch, num_word in enumerate(all_num_word):
-            c_b_e_w = all_c_b_e_w[batch, : num_word, :] # [num_word, hidden_size]
-            i_b_e_c = torch.sigmoid(self.linear_l_x(x_e_c[batch, :]) + self.linear_l_c(c_b_e_w)) # [num_word, hidden_size], equation(14)
-            exp_i_b_e_c = torch.exp(i_b_e_c) # [num_word, hidden_size]
-            sum_exp_i_b_j_c = torch.sum(exp_i_b_e_c, dim=0) # [hidden_size]
-            exp_i_j_c = torch.exp(i[batch, :]) # [hidden_size]
-            denominator_in_equation_16 = exp_i_j_c + sum_exp_i_b_j_c # [hidden_size]
-            alpha_b_j_c = exp_i_b_e_c / denominator_in_equation_16  # [num_word, hidden_size], the first line in equation(16)
-            alpha_j_c = exp_i_j_c / denominator_in_equation_16 # [hidden_size], the second line in equation(16)
-
-            c_j_c = torch.sum(alpha_b_j_c * c_b_e_w, dim=0) + alpha_j_c * g[batch, :] # [hidden_size], equation(15)
+            if num_word > 0:
+                c_b_e_w = all_c_b_e_w[batch, : num_word, :] # [num_word, hidden_size]
+                i_b_e_c = torch.sigmoid(self.linear_l_x(x_e_c[batch, :]) + self.linear_l_c(c_b_e_w)) # [num_word, hidden_size], equation(14)
+                exp_i_b_e_c = torch.exp(i_b_e_c) # [num_word, hidden_size]
+                sum_exp_i_b_j_c = torch.sum(exp_i_b_e_c, dim=0) # [hidden_size]
+                exp_i_j_c = torch.exp(i[batch, :]) # [hidden_size]
+                denominator_in_equation_16 = exp_i_j_c + sum_exp_i_b_j_c # [hidden_size]
+                alpha_b_j_c = exp_i_b_e_c / denominator_in_equation_16  # [num_word, hidden_size], the first line in equation(16)
+                alpha_j_c = exp_i_j_c / denominator_in_equation_16 # [hidden_size], the second line in equation(16)
+                c_j_c = torch.sum(alpha_b_j_c * c_b_e_w, dim=0) + alpha_j_c * g[batch, :] # [hidden_size], equation(15)
+            else:
+                c_j_c = g[batch, :] # try "c_j_c=i[batch,:]*g[batch,:]" or "c_j_c=f*c_0+i[batch,:]*g[batch,:]" here?
             batch_c_j_c[batch, :] = c_j_c
         # -----------------
         h_1 = o * torch.tanh(batch_c_j_c)
 
         return (h_1, batch_c_j_c)
 
+class LatticeLSTM(nn.Module):
+    def __init__(self, tokenizer: Tokenizer, word_tokenizer: WordTokenizer, cut_all,
+                 word_emb_path, char_emb_path,
+                 char_input_size, word_input_size, hidden_size, char_bias=True, word_bias=True,
+                 dropout=0, bidirectional=False, emb_norm=None):
+        super(LatticeLSTM, self).__init__()
+        self.lattice = Lattice(tokenizer=tokenizer, word_tokenizer=word_tokenizer, cut_all=cut_all)
+        self.char_input_size = char_input_size
+        self.word_input_size = word_input_size
+        self.hidden_size = hidden_size
+        self.lattice_word_cell = LatticeWordCell(input_size=word_input_size, hidden_size=hidden_size, bias=word_bias)
+        self.lattice_char_cell = LatticeCharCell(input_size=char_input_size, hidden_size=hidden_size, bias=char_bias)
+        self.dropout = dropout
+        self.bidirectional = bidirectional
+
+        word_emb_array = get_word_emb_array(word_emb_path, tokenizer=word_tokenizer, emb_norm=emb_norm)
+        self.word_emb = nn.Embedding.from_pretrained(embeddings=torch.Tensor(word_emb_array),
+                                                padding_idx=word_tokenizer.pad_id, max_norm=emb_norm)
+
+        char_emb_array = get_char_emb_array(char_emb_path, tokenizer=tokenizer, emb_norm=emb_norm)
+        self.char_emb = nn.Embedding.from_pretrained(embeddings=torch.Tensor(char_emb_array),
+                                                padding_idx=tokenizer.pad_index, max_norm=emb_norm)
+
+    def forward(self, seq_ids, mask):
+        batch_size = seq_ids.shape[0]
+        seq_len = seq_ids.shape[1]
+        # list of list of triple-tuple, [batch_size, num_word_in_seq, (word_begin, word_len, word_id)]
+        lattice_seq_batch = self.lattice.to_lattice(seq_ids=seq_ids, mask=mask)
+        end_lattice_dict_seq = [[[] for b in range(batch_size)] for s in range(seq_len)]
+        for batch, lattice_seq in enumerate(lattice_seq_batch):
+            for word_begin, word_len, word_id in lattice_seq:
+                word_end = word_begin + word_len - 1
+                end_lattice_dict_seq[word_end][batch].append((word_begin, word_len, word_id, batch))
+
+        init_hidden_cell_state = (torch.zeros(batch_size, self.hidden_size), torch.zeros(batch_size, self.hidden_size))
+        char_hidden_state = torch.zeros(batch_size, seq_len, self.hidden_size)
+        char_cell_state = torch.zeros(batch_size, seq_len, self.hidden_size)
+        for s in range(seq_len): # sequence direction
+            # word lstm cell ...
+            end_lattice_batch = end_lattice_dict_seq[s]
+            all_num_word = [len(end_lattice_list) for end_lattice_list in end_lattice_batch]
+            flatten_end_lattice_batch = sum(end_lattice_batch, [])
+            flatten_batch_begin_batch = [[batch, word_begin] for word_begin, _, _, batch in flatten_end_lattice_batch]
+            flatten_word_id_batch = [word_id for _, word_id, _, _ in flatten_end_lattice_batch]
+            flatten_hidden_batch = char_hidden_state[flatten_batch_begin_batch]
+            flatten_cell_batch = char_cell_state[flatten_batch_begin_batch]
+            flatten_word_emb_batch = self.word_emb[flatten_word_id_batch]
+            flatten_c_b_e_w_batch = self.lattice_word_cell(x_b_e_w=flatten_word_emb_batch,
+                                                            h_b_c=flatten_hidden_batch,
+                                                            c_b_c=flatten_cell_batch)
+
+            # char lstm cell ...
+            max_num_word = max(all_num_word)
+            all_c_b_e_w = torch.Tensor(batch_size, max_num_word, self.hidden_size)
+            begin_in_flatten_batch = 0
+            for batch, num_word in enumerate(all_num_word):
+                if num_word > 0:
+                    all_c_b_e_w[batch, : num_word, :] = \
+                        flatten_c_b_e_w_batch[begin_in_flatten_batch : begin_in_flatten_batch + num_word, :]
+                begin_in_flatten_batch += num_word
+            h_c_0 = (char_hidden_state[:, s - 1, :], char_cell_state[:, s - 1, :]) if s > 0 else init_hidden_cell_state
+            input = self.char_emb[seq_ids[:, s]]
+            h_1, c_j_c = \
+                self.lattice_char_cell(input=input, h_c_0=h_c_0, all_c_b_e_w=all_c_b_e_w, all_num_word=all_num_word)
+            char_hidden_state[:, s, :] = h_1
+            char_cell_state[:, s, :] = c_j_c
 
 
 if __name__ == '__main__':
@@ -210,7 +278,7 @@ if __name__ == '__main__':
     bert_model_path = './bert_model/pytorch_pretrained_bert/bert-base-chinese/'
     tok = Tokenizer(path=os.path.join(bert_model_path, 'vocab.txt'))
     wtok = WordTokenizer('word_emb/word_emb_200d_tencent_ailab_top_10w.txt')
-    cl = CharLattice(tok, wtok, cut_all=True)
+    cl = Lattice(tok, wtok, cut_all=True)
 
     count = 0
     dt1 = dt.datetime.now()

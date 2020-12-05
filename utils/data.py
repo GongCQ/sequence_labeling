@@ -368,8 +368,10 @@ class WordTokenizer:
         self.word_id_dict = {}
         self.pad_token = '\000'
         self.unknown_token = '\001'
-        self.word_id_dict['[PAD]'] = 0
-        self.word_id_dict['[UNK]'] = 1
+        self.pad_id = 0
+        self.unknown_id = 1
+        self.word_id_dict[self.pad_token] = self.pad_id
+        self.word_id_dict[self.unknown_token] = self.unknown_id
         file = open(word_vocab_path, encoding='utf-8')
         for line in file:
             line = line.strip()
@@ -379,7 +381,7 @@ class WordTokenizer:
         self.word_id_pair_list = list(self.word_id_dict.items())
 
     def get_id(self, word):
-        return self.word_id_dict.get(word, 1)
+        return self.word_id_dict.get(word, self.unknown_id)
 
     def get_word(self, id):
         return self.word_id_pair_list[id][0] if id < len(self.word_id_pair_list) else self.unknown_token
