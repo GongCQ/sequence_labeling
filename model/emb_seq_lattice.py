@@ -247,10 +247,11 @@ class LatticeLSTM(nn.Module):
             end_lattice_batch = end_lattice_dict_seq[s]
             all_num_word = [len(end_lattice_list) for end_lattice_list in end_lattice_batch]
             flatten_end_lattice_batch = sum(end_lattice_batch, [])
-            flatten_batch_begin_batch = [[batch, word_begin] for word_begin, _, _, batch in flatten_end_lattice_batch]
-            flatten_word_id_batch = [word_id for _, word_id, _, _ in flatten_end_lattice_batch]
-            flatten_hidden_batch = char_hidden_state[flatten_batch_begin_batch]
-            flatten_cell_batch = char_cell_state[flatten_batch_begin_batch]
+            flatten_batch_batch = [batch for _, _, _, batch in flatten_end_lattice_batch]
+            flatten_begin_batch = [word_begin for word_begin, _, _, _ in flatten_end_lattice_batch]
+            flatten_word_id_batch = [word_id for _, _, word_id, _ in flatten_end_lattice_batch]
+            flatten_hidden_batch = char_hidden_state[flatten_batch_batch, flatten_begin_batch]
+            flatten_cell_batch = char_cell_state[flatten_batch_batch, flatten_begin_batch]
             flatten_word_emb_batch = self.word_emb[flatten_word_id_batch]
             flatten_c_b_e_w_batch = self.lattice_word_cell(x_b_e_w=flatten_word_emb_batch,
                                                             h_b_c=flatten_hidden_batch,
@@ -271,6 +272,13 @@ class LatticeLSTM(nn.Module):
                 self.lattice_char_cell(input=input, h_c_0=h_c_0, all_c_b_e_w=all_c_b_e_w, all_num_word=all_num_word)
             char_hidden_state[:, s, :] = h_1
             char_cell_state[:, s, :] = c_j_c
+
+        all_seq_len = torch.sum(mask, dim=1)
+        batch_loc = list(range(batch_size))
+        tail_loc = list(all_seq_len - 1)
+        h = char_hidden_state[batch_loc, tail_loc, :]
+        c = char_cell_state[batch_loc, tail_loc, :]
+        return char_hidden_state, (h, c)
 
 
 if __name__ == '__main__':
