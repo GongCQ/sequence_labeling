@@ -4,6 +4,9 @@
 4.用nn.DataParallel会导致“StopIteration: Caught StopIteration in replica 0 on device 0.”错误，参考这里的描述 https://github.com/pytorch/pytorch/issues/40457
 5.torch中的Quantization技术：https://pytorch.org/docs/stable/quantization.html?highlight=quantized
     https://pytorch.org/docs/stable/torch.nn.quantized.html?highlight=quantized#module-torch.nn.quantized
+6.tensor的requires_grad和is_leaf属性
+7.自动求导 https://pytorch.org/docs/stable/autograd.html#torch.Tensor.requires_grad
+
 
 自己的lstm和torch的lstm的对比：
 my_lstm       : ml   (自己的lstm，否则torch的lstm)

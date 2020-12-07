@@ -207,9 +207,10 @@ class LatticeCharCell(nn.Module):
 
 class LatticeLSTM(nn.Module):
     def __init__(self, tokenizer: Tokenizer, word_tokenizer: WordTokenizer, cut_all,
-                 word_emb_path, char_emb_path,
+                 word_emb_array, char_emb_array, label_num,
                  char_input_size, word_input_size, hidden_size, char_bias=True, word_bias=True,
-                 dropout=0, bidirectional=False, emb_norm=None):
+                 dropout=0, bidirectional=False, emb_max_norm=None, emb_trainable=True,
+                 emb_learning_rate=0.001, lstm_learning_rate=0.01, full_conn_learning_rate=0.01):
         super(LatticeLSTM, self).__init__()
         self.lattice = Lattice(tokenizer=tokenizer, word_tokenizer=word_tokenizer, cut_all=cut_all)
         self.char_input_size = char_input_size
@@ -217,16 +218,30 @@ class LatticeLSTM(nn.Module):
         self.hidden_size = hidden_size
         self.lattice_word_cell = LatticeWordCell(input_size=word_input_size, hidden_size=hidden_size, bias=word_bias)
         self.lattice_char_cell = LatticeCharCell(input_size=char_input_size, hidden_size=hidden_size, bias=char_bias)
-        self.dropout = dropout
+        self.dropout_prob = dropout
+        self.dropout = nn.Dropout(p=dropout)
         self.bidirectional = bidirectional
+        self.emb_trainable = emb_trainable
+        self.emb_learning_rate = emb_learning_rate
+        self.lstm_learning_rate = lstm_learning_rate
+        self.full_conn_learning_rate = full_conn_learning_rate
 
-        word_emb_array = get_word_emb_array(word_emb_path, tokenizer=word_tokenizer, emb_norm=emb_norm)
         self.word_emb = nn.Embedding.from_pretrained(embeddings=torch.Tensor(word_emb_array),
-                                                padding_idx=word_tokenizer.pad_id, max_norm=emb_norm)
+                                                padding_idx=word_tokenizer.pad_id, max_norm=emb_max_norm)
 
-        char_emb_array = get_char_emb_array(char_emb_path, tokenizer=tokenizer, emb_norm=emb_norm)
         self.char_emb = nn.Embedding.from_pretrained(embeddings=torch.Tensor(char_emb_array),
-                                                padding_idx=tokenizer.pad_index, max_norm=emb_norm)
+                                                padding_idx=tokenizer.pad_index, max_norm=emb_max_norm)
+
+        self.word_emb.requires_grad_(emb_trainable)
+        self.char_emb.requires_grad_(emb_trainable)
+        self.full_conn = nn.Linear(self.hidden_size * (2 if bidirectional else 1), label_num + 2)
+
+        if USE_GPU:
+            self.word_emb = self.word_emb.cuda()
+            self.char_emb = self.char_emb.cuda()
+            self.lattice_word_cell = self.lattice_word_cell.cuda()
+            self.lattice_char_cell = self.lattice_char_cell.cuda()
+            self.full_conn = self.full_conn.cuda()
 
     def forward(self, seq_ids, mask):
         batch_size = seq_ids.shape[0]
@@ -260,6 +275,8 @@ class LatticeLSTM(nn.Module):
             # char lstm cell ...
             max_num_word = max(all_num_word)
             all_c_b_e_w = torch.Tensor(batch_size, max_num_word, self.hidden_size)
+            if USE_GPU:
+                all_c_b_e_w = all_c_b_e_w.cuda()
             begin_in_flatten_batch = 0
             for batch, num_word in enumerate(all_num_word):
                 if num_word > 0:
@@ -278,8 +295,23 @@ class LatticeLSTM(nn.Module):
         tail_loc = list(all_seq_len - 1)
         h = char_hidden_state[batch_loc, tail_loc, :]
         c = char_cell_state[batch_loc, tail_loc, :]
-        return char_hidden_state, (h, c)
+        if self.dropout_prob > 0:
+            char_hidden_state = self.dropout(char_hidden_state)
+        feature_seq = self.full_conn(char_hidden_state)
+        return feature_seq
 
+    def get_param_config(self):
+        param_config = [{'params': self.word_emb.parameters(),
+                         'lr': self.emb_learning_rate},
+                        {'params': self.char_emb.parameters(),
+                         'lr': self.emb_learning_rate},
+                        {'params': self.lattice_word_cell.parameters(),
+                         'lr': self.lstm_learning_rate},
+                        {'params': self.lattice_char_cell.parameters(),
+                         'lr': self.lstm_learning_rate},
+                        {'params': self.full_conn.parameters(),
+                         'lr': self.full_conn_learning_rate}]
+        return param_config
 
 if __name__ == '__main__':
     test_file = open('temp/lattice_test.txt')
