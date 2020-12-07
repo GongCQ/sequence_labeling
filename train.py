@@ -7,6 +7,7 @@ import utils.metric as metric
 import utils.evaluate as evaluate
 from model.emb_seq_bert import EmbSeqBert
 from model.emb_seq_lstm import EmbSeqLSTM
+from model.emb_seq_lattice import LatticeLSTM
 from model.seq_label import SeqLabel
 import utils.config as config
 
@@ -27,8 +28,17 @@ met = metric.Metric(label_set=train_data_set.label_tokenizer.label_set,
 # emb_seq_model = EmbSeqBert(bert_model_path=bert_model_path,
 #                            label_num=train_data_set.label_tokenizer.label_num)
 # .......................
-emb_array = data.get_char_emb_array(os.path.join('word_emb', 'char_emb_300d_nl2sql.txt'), tok)
-emb_seq_model = EmbSeqLSTM(emb_array=emb_array, label_num=train_data_set.label_tokenizer.label_num)
+# emb_array = data.get_char_emb_array(os.path.join('word_emb', 'char_emb_300d_nl2sql.txt'), tok)
+# emb_seq_model = EmbSeqLSTM(emb_array=emb_array, label_num=train_data_set.label_tokenizer.label_num)
+# .......................
+word_emb_path = os.path.join('word_emb', 'word_emb_200d_tencent_ailab_top_10w.txt')
+word_tok = data.WordTokenizer(word_vocab_path=word_emb_path)
+char_emb_array = data.get_char_emb_array(os.path.join('word_emb', 'char_emb_300d_nl2sql.txt'), tokenizer=tok)
+word_emb_array = data.get_word_emb_array(word_emb_path, tokenizer=word_tok)
+emb_seq_model = LatticeLSTM(tokenizer=tok, word_tokenizer=word_tok, cut_all=True,
+                            word_emb_array=word_emb_array, char_emb_array=char_emb_array,
+                            label_num=train_data_set.label_tokenizer.label_num,
+                            char_input_size=300, word_input_size=200, hidden_size=100)
 # -----------------------
 seq_label_model = SeqLabel(emb_seq_model=emb_seq_model,
                            label_num=train_data_set.label_tokenizer.label_num)

@@ -261,13 +261,19 @@ class LatticeLSTM(nn.Module):
             # word lstm cell ...
             end_lattice_batch = end_lattice_dict_seq[s]
             all_num_word = [len(end_lattice_list) for end_lattice_list in end_lattice_batch]
+
             flatten_end_lattice_batch = sum(end_lattice_batch, [])
             flatten_batch_batch = [batch for _, _, _, batch in flatten_end_lattice_batch]
             flatten_begin_batch = [word_begin for word_begin, _, _, _ in flatten_end_lattice_batch]
             flatten_word_id_batch = [word_id for _, _, word_id, _ in flatten_end_lattice_batch]
+
+            flatten_word_id_batch = torch.Tensor(flatten_word_id_batch).long()
+            if USE_GPU:
+                flatten_word_id_batch = flatten_word_id_batch.cuda()
+
             flatten_hidden_batch = char_hidden_state[flatten_batch_batch, flatten_begin_batch]
             flatten_cell_batch = char_cell_state[flatten_batch_batch, flatten_begin_batch]
-            flatten_word_emb_batch = self.word_emb[flatten_word_id_batch]
+            flatten_word_emb_batch = self.word_emb(flatten_word_id_batch)
             flatten_c_b_e_w_batch = self.lattice_word_cell(x_b_e_w=flatten_word_emb_batch,
                                                             h_b_c=flatten_hidden_batch,
                                                             c_b_c=flatten_cell_batch)
@@ -284,7 +290,7 @@ class LatticeLSTM(nn.Module):
                         flatten_c_b_e_w_batch[begin_in_flatten_batch : begin_in_flatten_batch + num_word, :]
                 begin_in_flatten_batch += num_word
             h_c_0 = (char_hidden_state[:, s - 1, :], char_cell_state[:, s - 1, :]) if s > 0 else init_hidden_cell_state
-            input = self.char_emb[seq_ids[:, s]]
+            input = self.char_emb(seq_ids[:, s])
             h_1, c_j_c = \
                 self.lattice_char_cell(input=input, h_c_0=h_c_0, all_c_b_e_w=all_c_b_e_w, all_num_word=all_num_word)
             char_hidden_state[:, s, :] = h_1
@@ -300,7 +306,7 @@ class LatticeLSTM(nn.Module):
         feature_seq = self.full_conn(char_hidden_state)
         return feature_seq
 
-    def get_param_config(self):
+    def get_params_config(self):
         param_config = [{'params': self.word_emb.parameters(),
                          'lr': self.emb_learning_rate},
                         {'params': self.char_emb.parameters(),
