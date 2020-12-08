@@ -37,7 +37,7 @@ class Lattice:
         for s, m in zip(seq_ids, mask):
             seq_len = m.sum().item()
             seq_id = s[ : seq_len]
-            char_list = self.tokenizer.decode(seq_id.detach().numpy())
+            char_list = self.tokenizer.decode((seq_id.detach().cpu() if USE_GPU else seq_id.detach()).numpy())
             for c, char in enumerate(char_list):
                 if len(char) != 1:
                     char_list[c] = self.word_tokenizer.unknown_token
@@ -186,6 +186,8 @@ class LatticeCharCell(nn.Module):
         # c_1 = f * c_0 + i * g
         # .................
         batch_c_j_c = torch.zeros(all_c_b_e_w.shape[0], self.hidden_size)
+        if USE_GPU:
+            batch_c_j_c = batch_c_j_c.cuda()
         for batch, num_word in enumerate(all_num_word):
             if num_word > 0:
                 c_b_e_w = all_c_b_e_w[batch, : num_word, :] # [num_word, hidden_size]
@@ -252,31 +254,48 @@ class LatticeLSTM(nn.Module):
         for batch, lattice_seq in enumerate(lattice_seq_batch):
             for word_begin, word_len, word_id in lattice_seq:
                 word_end = word_begin + word_len - 1
-                end_lattice_dict_seq[word_end][batch].append((word_begin, word_len, word_id, batch))
+                if word_len > 1: # important!!!
+                    end_lattice_dict_seq[word_end][batch].append((word_begin, word_len, word_id, batch))
 
         init_hidden_cell_state = (torch.zeros(batch_size, self.hidden_size), torch.zeros(batch_size, self.hidden_size))
-        char_hidden_state = torch.zeros(batch_size, seq_len, self.hidden_size)
-        char_cell_state = torch.zeros(batch_size, seq_len, self.hidden_size)
+        if USE_GPU:
+            init_hidden_cell_state = (init_hidden_cell_state[0].cuda(), init_hidden_cell_state[1].cuda())
+        # char_hidden_state = torch.zeros(batch_size, seq_len, self.hidden_size)
+        # char_cell_state = torch.zeros(batch_size, seq_len, self.hidden_size)
+        char_hidden_list = []
+        char_cell_list = []
         for s in range(seq_len): # sequence direction
             # word lstm cell ...
             end_lattice_batch = end_lattice_dict_seq[s]
             all_num_word = [len(end_lattice_list) for end_lattice_list in end_lattice_batch]
 
             flatten_end_lattice_batch = sum(end_lattice_batch, [])
-            flatten_batch_batch = [batch for _, _, _, batch in flatten_end_lattice_batch]
-            flatten_begin_batch = [word_begin for word_begin, _, _, _ in flatten_end_lattice_batch]
-            flatten_word_id_batch = [word_id for _, _, word_id, _ in flatten_end_lattice_batch]
+            if len(flatten_end_lattice_batch) > 0:
+                flatten_batch_batch = [batch for _, _, _, batch in flatten_end_lattice_batch]
+                flatten_begin_batch = [word_begin for word_begin, _, _, _ in flatten_end_lattice_batch]
+                flatten_word_id_batch = [word_id for _, _, word_id, _ in flatten_end_lattice_batch]
+                flatten_word_id_batch = torch.Tensor(flatten_word_id_batch).long()
 
-            flatten_word_id_batch = torch.Tensor(flatten_word_id_batch).long()
+                flatten_hidden_batch = []
+                flatten_cell_batch = []
+                for batch, begin in zip(flatten_batch_batch, flatten_begin_batch):
+                    flatten_hidden_batch.append(char_hidden_list[begin][batch])
+                    flatten_cell_batch.append(char_cell_list[begin][batch])
+                flatten_hidden_batch = torch.stack(flatten_hidden_batch, dim=0)
+                flatten_cell_batch = torch.stack(flatten_cell_batch, dim=0)
+                if USE_GPU:
+                    flatten_word_id_batch = flatten_word_id_batch.cuda()
+                    flatten_hidden_batch = flatten_hidden_batch.cuda()
+                    flatten_cell_batch = flatten_cell_batch.cuda()
+
+                flatten_word_emb_batch = self.word_emb(flatten_word_id_batch)
+                flatten_c_b_e_w_batch = self.lattice_word_cell(x_b_e_w=flatten_word_emb_batch,
+                                                                h_b_c=flatten_hidden_batch,
+                                                                c_b_c=flatten_cell_batch)
+            else:
+                flatten_c_b_e_w_batch = torch.zeros(0, self.hidden_size).float()
             if USE_GPU:
-                flatten_word_id_batch = flatten_word_id_batch.cuda()
-
-            flatten_hidden_batch = char_hidden_state[flatten_batch_batch, flatten_begin_batch]
-            flatten_cell_batch = char_cell_state[flatten_batch_batch, flatten_begin_batch]
-            flatten_word_emb_batch = self.word_emb(flatten_word_id_batch)
-            flatten_c_b_e_w_batch = self.lattice_word_cell(x_b_e_w=flatten_word_emb_batch,
-                                                            h_b_c=flatten_hidden_batch,
-                                                            c_b_c=flatten_cell_batch)
+                flatten_c_b_e_w_batch = flatten_c_b_e_w_batch.cuda()
 
             # char lstm cell ...
             max_num_word = max(all_num_word)
@@ -289,18 +308,14 @@ class LatticeLSTM(nn.Module):
                     all_c_b_e_w[batch, : num_word, :] = \
                         flatten_c_b_e_w_batch[begin_in_flatten_batch : begin_in_flatten_batch + num_word, :]
                 begin_in_flatten_batch += num_word
-            h_c_0 = (char_hidden_state[:, s - 1, :], char_cell_state[:, s - 1, :]) if s > 0 else init_hidden_cell_state
+            h_c_0 = (char_hidden_list[s - 1], char_cell_list[s - 1]) if s > 0 else init_hidden_cell_state
             input = self.char_emb(seq_ids[:, s])
             h_1, c_j_c = \
                 self.lattice_char_cell(input=input, h_c_0=h_c_0, all_c_b_e_w=all_c_b_e_w, all_num_word=all_num_word)
-            char_hidden_state[:, s, :] = h_1
-            char_cell_state[:, s, :] = c_j_c
+            char_hidden_list.append(h_1)
+            char_cell_list.append(c_j_c)
 
-        all_seq_len = torch.sum(mask, dim=1)
-        batch_loc = list(range(batch_size))
-        tail_loc = list(all_seq_len - 1)
-        h = char_hidden_state[batch_loc, tail_loc, :]
-        c = char_cell_state[batch_loc, tail_loc, :]
+        char_hidden_state = torch.stack(char_hidden_list, dim=1)
         if self.dropout_prob > 0:
             char_hidden_state = self.dropout(char_hidden_state)
         feature_seq = self.full_conn(char_hidden_state)

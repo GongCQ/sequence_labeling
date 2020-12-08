@@ -31,10 +31,15 @@ met = metric.Metric(label_set=train_data_set.label_tokenizer.label_set,
 # emb_array = data.get_char_emb_array(os.path.join('word_emb', 'char_emb_300d_nl2sql.txt'), tok)
 # emb_seq_model = EmbSeqLSTM(emb_array=emb_array, label_num=train_data_set.label_tokenizer.label_num)
 # .......................
-word_emb_path = os.path.join('word_emb', 'word_emb_200d_tencent_ailab_top_10w.txt')
+print('%s begin construct tok and emb.' % dt.datetime.now())
+word_emb_path = os.path.join('word_emb', 'word_emb_200d_tencent_ailab_top_100w.txt')
+char_emb_path = os.path.join('word_emb', 'char_emb_300d_nl2sql.txt')
+print('word_emb_path: %s' % word_emb_path)
+print('char_emb_path: %s' % char_emb_path)
 word_tok = data.WordTokenizer(word_vocab_path=word_emb_path)
-char_emb_array = data.get_char_emb_array(os.path.join('word_emb', 'char_emb_300d_nl2sql.txt'), tokenizer=tok)
+char_emb_array = data.get_char_emb_array(char_emb_path, tokenizer=tok)
 word_emb_array = data.get_word_emb_array(word_emb_path, tokenizer=word_tok)
+print('%s end construct tok and emb.' % dt.datetime.now())
 emb_seq_model = LatticeLSTM(tokenizer=tok, word_tokenizer=word_tok, cut_all=True,
                             word_emb_array=word_emb_array, char_emb_array=char_emb_array,
                             label_num=train_data_set.label_tokenizer.label_num,
@@ -62,7 +67,7 @@ for i in range(config.EPOCH_NUM):
         loss = seq_label_model.train_batch(seq_ids=seq_ids_batch_t,
                                            label_ids=label_ids_batch_t,
                                            mask=seq_ids_mask_batch_t)
-        # print('%s epoch %s, batch %s, loss %s.' % (dt.datetime.now(),i, c, loss))
+        print('%s epoch %s, batch %s, loss %s.' % (dt.datetime.now(),i, c, loss))
         if c % config.EVAL_BATCH_INTERVAL == 0:
             print('\nepoch %s, batch %s， %s ----------------------------------------' % (i, c, dt.datetime.now()))
             print('loss %s' % str(loss))
