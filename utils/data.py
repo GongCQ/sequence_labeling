@@ -363,8 +363,8 @@ def get_char_emb_array(char_emb_path, tokenizer: Tokenizer, emb_norm=None):
     return emb_array
 
 class WordTokenizer:
-    def __init__(self, word_vocab_path, emb_norm=1):
-        self.word_vocab_path = word_vocab_path
+    def __init__(self, word_emb_path, emb_norm=1):
+        self.word_vocab_path = word_emb_path
         self.word_id_dict = {}
         self.pad_token = '\000'
         self.unknown_token = '\001'
@@ -372,13 +372,20 @@ class WordTokenizer:
         self.unknown_id = 1
         self.word_id_dict[self.pad_token] = self.pad_id
         self.word_id_dict[self.unknown_token] = self.unknown_id
-        file = open(word_vocab_path, encoding='utf-8')
+        file = open(word_emb_path, encoding='utf-8')
         for line in file:
             line = line.strip()
             if len(line) >= 1:
                 word = line.split(' ')[0]
                 self.word_id_dict[word] = len(self.word_id_dict)
         self.word_id_pair_list = list(self.word_id_dict.items())
+
+        word_emb_df = pd.read_csv(word_emb_path, index_col=0, header=None, sep=' ',
+                                  error_bad_lines=False, quoting=csv.QUOTE_NONE, encoding='utf-8')
+        top_2_row = np.zeros([2, word_emb_df.shape[1]], dtype=float)
+        self.emb_array = np.vstack([top_2_row, word_emb_df.values])
+        print('word_id_pair_list length %s' % len(self.word_id_pair_list))
+        print('emb_array shape %s' % str(self.emb_array.shape))
 
     def get_id(self, word):
         return self.word_id_dict.get(word, self.unknown_id)
@@ -389,19 +396,19 @@ class WordTokenizer:
     def vocab_size(self):
         return len(self.word_id_pair_list)
 
-def get_word_emb_array(word_emb_path, tokenizer: WordTokenizer, emb_norm=None):
-    word_emb_df = pd.read_csv(word_emb_path, index_col=0, header=None, sep=' ',
-                              error_bad_lines=False, quoting=csv.QUOTE_NONE, encoding='utf-8')
-    vocab_size = tokenizer.vocab_size()
-    emb_size = word_emb_df.shape[1]
-    emb_array = np.zeros([vocab_size, emb_size], dtype=float)
-    for word, id in tokenizer.word_id_dict.items():
-        if word in word_emb_df.index:
-            emb = word_emb_df.loc[word, :].values
-            if emb_norm is not None:
-                norm = np.linalg.norm(emb)
-                emb = (emb_norm * emb / norm) if norm > 0 else emb
-            emb_array[id, :] = emb
-    return emb_array
+# def get_word_emb_array(word_emb_path, tokenizer: WordTokenizer, emb_norm=None):
+#     word_emb_df = pd.read_csv(word_emb_path, index_col=0, header=None, sep=' ',
+#                               error_bad_lines=False, quoting=csv.QUOTE_NONE, encoding='utf-8')
+#     vocab_size = tokenizer.vocab_size()
+#     emb_size = word_emb_df.shape[1]
+#     emb_array = np.zeros([vocab_size, emb_size], dtype=float)
+#     for word, id in tokenizer.word_id_dict.items():
+#         if word in word_emb_df.index:
+#             emb = word_emb_df.loc[word, :].values
+#             if emb_norm is not None:
+#                 norm = np.linalg.norm(emb)
+#                 emb = (emb_norm * emb / norm) if norm > 0 else emb
+#             emb_array[id, :] = emb
+#     return emb_array
 
 

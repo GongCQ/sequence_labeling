@@ -6,7 +6,7 @@ import jieba
 import torch
 import torch.nn as nn
 from utils.config import *
-from utils.data import Tokenizer, WordTokenizer, get_word_emb_array, get_char_emb_array
+from utils.data import Tokenizer, WordTokenizer, get_char_emb_array
 
 pd.set_option('display.max_rows', 1000)
 pd.set_option('display.max_columns', 1000)
