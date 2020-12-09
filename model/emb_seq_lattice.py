@@ -53,6 +53,8 @@ class Lattice:
                     last_len = len(last_word)
                     current_max_begin = last_begin + last_len
                     current_len = len(current_word)
+                    if current_len == 0:
+                        continue
                     current_matched_begin = current_max_begin
                     for i in range(1, max(current_len, last_len) + 1):  # search backward
                         current_try_begin = current_max_begin - i
@@ -70,7 +72,7 @@ class Lattice:
                     fraction_list.append((current_word, current_matched_begin))
                 for fraction in fraction_list:
                     if fraction[0] != text[fraction[1]: fraction[1] + len(fraction[0])]:
-                        warnings.warn('check format error.\n%s\n%s' % (text, fraction_list))
+                        print('check format error.\n%s\n%s\n%s' % (text, seg, fraction_list))
                         cut_all_fail = True
                         break
 
@@ -81,6 +83,8 @@ class Lattice:
                 for current_word in seg[1 : ]:
                     fraction_list.append((current_word, accum_len))
                     accum_len += len(current_word)
+                if cut_all_fail:
+                    print('cut_all_fail and turn to cut_all=False  %s' % fraction_list)
             fraction_list_batch.append(fraction_list)
 
             if print_result:

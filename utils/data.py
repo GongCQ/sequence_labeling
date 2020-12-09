@@ -2,6 +2,7 @@ import os
 import copy
 import random
 import csv
+from pyparsing import unichr
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
@@ -115,6 +116,8 @@ class DataSet:
         self.tokenizer = tokenizer
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.sbc_to_dbc_ignore_set = {ord('？'), ord('！'), ord('：'), ord('；'), ord('，'), ord('。'), 
+                                      ord('“'), ord('”'), ord('‘'), ord('’'), }
 
         self.file = open(path, encoding='utf-8')
         self.seq_label_list, self.max_len_dict, self.label_count_dict = self._resolve_seq_label_file(self.file)
@@ -224,6 +227,16 @@ class DataSet:
                '\nlabel set       : %s' % label_count_str + '\n'
         return info
 
+    def sbc_to_dbc(self, char):
+        '''
+        full-width to half-width'''
+        inside_code = ord(char)
+        if inside_code == 12288:
+            inside_code = 32
+        elif inside_code >= 65281 and inside_code <= 65374 and inside_code not in self.sbc_to_dbc_ignore_set:
+            inside_code -= 65248
+        return unichr(inside_code)
+
     def _format_seq(self, seq):
         # --------------------------------------
         # if len(seq) > SEQ_MAX_LEN - 2:
@@ -235,7 +248,7 @@ class DataSet:
         if len(seq) > SEQ_MAX_LEN:
             seq = seq[ : SEQ_MAX_LEN]
         for char_label in seq:
-            char_label[0] = char_label[0].lower()
+            char_label[0] = self.sbc_to_dbc(char_label[0].lower())
         # --------------------------------------
         return seq
 
