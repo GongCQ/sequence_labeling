@@ -6,6 +6,8 @@
     https://pytorch.org/docs/stable/torch.nn.quantized.html?highlight=quantized#module-torch.nn.quantized
 6.tensor的requires_grad和is_leaf属性
 7.自动求导 https://pytorch.org/docs/stable/autograd.html#torch.Tensor.requires_grad
+8.torch里的dropout在执行后会自动对向量进行1/(1-p)的放大！！具体参见torch的文档！！
+9.jieba分词cut_all=True的bug似乎在python3.6中没有，在python3.7中有。
 
 
 自己的lstm和torch的lstm的对比：
@@ -28,7 +30,7 @@ my_lstm, my_cell, dropout_h_out, dropout_h_next, dropout_c_next, bidirectional, 
       0,       0,             x,              x,              x,             1,     0.5,   0.894212
       1,       0,             1,              0,              0,             0,       0,   0.869831
       1,       0,             1,              0,              0,             1,       0,   0.897052
-      0,       0,             x,              x,              x,             0,       0,
-      0,       0,             x,              x,              x,             1,       0,
-      1,       1,             1,              0,              0,             0,       0,
-      1,       1,             1,              0,              0,             1,       0,
+      0,       0,             x,              x,              x,             0,       0,   0.869188
+      0,       0,             x,              x,              x,             1,       0,   0.893086
+      1,       1,             1,              0,              0,             0,       0,   0.865011
+      1,       1,             1,              0,              0,             1,       0,   0.898622
