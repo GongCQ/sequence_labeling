@@ -409,6 +409,12 @@ class WordTokenizer:
     def vocab_size(self):
         return len(self.word_id_pair_list)
 
+    def is_valid_id(self, id):
+        return 2 <= id < len(self.word_id_dict)
+
+    def is_valid_word(self, word):
+        return word in self.word_id_dict.keys() and word != self.unknown_token and word != self.pad_token
+
 # def get_word_emb_array(word_emb_path, tokenizer: WordTokenizer, emb_norm=None):
 #     word_emb_df = pd.read_csv(word_emb_path, index_col=0, header=None, sep=' ',
 #                               error_bad_lines=False, quoting=csv.QUOTE_NONE, encoding='utf-8')

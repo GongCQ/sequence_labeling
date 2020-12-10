@@ -20,10 +20,11 @@ pd.set_option('display.unicode.east_asian_width', True)
 
 
 class Lattice:
-    def __init__(self, tokenizer: Tokenizer, word_tokenizer: WordTokenizer, cut_all=True):
+    def __init__(self, tokenizer: Tokenizer, word_tokenizer: WordTokenizer, cut_all=True, ignore_invalid_word=False):
         self.tokenizer = tokenizer
         self.word_tokenizer = word_tokenizer
         self.cut_all = cut_all
+        self.ignore_invalid_word = ignore_invalid_word
         self.search_forward_len = 4
 
     def to_lattice(self, seq_ids, mask, print_result=False):
@@ -103,7 +104,8 @@ class Lattice:
         lattice_seq_batch = []
         for fraction_list in fraction_list_batch:
             lattice_seq = [(fraction[1], len(fraction[0]), self.word_tokenizer.get_id(fraction[0]))
-                           for fraction in fraction_list]
+                           for fraction in fraction_list
+                           if (self.word_tokenizer.is_valid_word(fraction[0]) or not self.ignore_invalid_word)]
             lattice_seq_batch.append(lattice_seq)
 
         return lattice_seq_batch
@@ -212,13 +214,14 @@ class LatticeCharCell(nn.Module):
         return (h_1, batch_c_j_c)
 
 class LatticeLSTM(nn.Module):
-    def __init__(self, tokenizer: Tokenizer, word_tokenizer: WordTokenizer, cut_all,
+    def __init__(self, tokenizer: Tokenizer, word_tokenizer: WordTokenizer, cut_all, ignore_invalid_word,
                  word_emb_array, char_emb_array, label_num,
                  char_input_size, word_input_size, hidden_size, char_bias=True, word_bias=True,
                  dropout=0, bidirectional=False, emb_max_norm=None, emb_trainable=True,
                  emb_learning_rate=0.001, lstm_learning_rate=0.01, full_conn_learning_rate=0.01):
         super(LatticeLSTM, self).__init__()
-        self.lattice = Lattice(tokenizer=tokenizer, word_tokenizer=word_tokenizer, cut_all=cut_all)
+        self.lattice = Lattice(tokenizer=tokenizer, word_tokenizer=word_tokenizer,
+                               cut_all=cut_all, ignore_invalid_word=ignore_invalid_word)
         self.char_input_size = char_input_size
         self.word_input_size = word_input_size
         self.hidden_size = hidden_size

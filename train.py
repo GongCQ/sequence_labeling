@@ -34,11 +34,13 @@ met = metric.Metric(label_set=train_data_set.label_tokenizer.label_set,
 # .......................
 print('%s begin construct tok and emb.' % dt.datetime.now())
 cut_all = True
+ignore_invalid_word = False
 emb_trainable = True
-emb_max_norm = 1
+emb_max_norm = None
 word_emb_path = os.path.join('word_emb', 'word_emb_200d_tencent_ailab_top_100w.txt')
 char_emb_path = os.path.join('word_emb', 'char_emb_300d_nl2sql.txt')
 print('cut_all: %s' % cut_all)
+print('ignore_invalid_word: %s' % ignore_invalid_word)
 print('emb_trainable: %s' % emb_trainable)
 print('emb_max_norm: %s' % emb_max_norm)
 print('word_emb_path: %s' % word_emb_path)
@@ -47,7 +49,8 @@ word_tok = data.WordTokenizer(word_emb_path=word_emb_path)
 char_emb_array = data.get_char_emb_array(char_emb_path, tokenizer=tok)
 word_emb_array = word_tok.emb_array
 print('%s end construct tok and emb.' % dt.datetime.now())
-emb_seq_model = LatticeLSTM(tokenizer=tok, word_tokenizer=word_tok, cut_all=cut_all,
+emb_seq_model = LatticeLSTM(tokenizer=tok, word_tokenizer=word_tok,
+                            cut_all=cut_all, ignore_invalid_word=ignore_invalid_word,
                             word_emb_array=word_emb_array, char_emb_array=char_emb_array,
                             label_num=train_data_set.label_tokenizer.label_num,
                             char_input_size=300, word_input_size=200, hidden_size=100,
