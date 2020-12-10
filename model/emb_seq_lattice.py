@@ -345,8 +345,10 @@ if __name__ == '__main__':
     test_file = open('temp/lattice_test.txt')
     bert_model_path = './bert_model/pytorch_pretrained_bert/bert-base-chinese/'
     tok = Tokenizer(path=os.path.join(bert_model_path, 'vocab.txt'))
-    wtok = WordTokenizer('word_emb/word_emb_200d_tencent_ailab_top_10w.txt')
-    cl = Lattice(tok, wtok, cut_all=True)
+    wtok = WordTokenizer('word_emb/word_emb_200d_tencent_ailab_top_50w.txt')
+    giw = True
+    clt = Lattice(tok, wtok, cut_all=True, ignore_invalid_word=True)
+    clf = Lattice(tok, wtok, cut_all=True, ignore_invalid_word=False)
 
     count = 0
     dt1 = dt.datetime.now()
@@ -354,7 +356,11 @@ if __name__ == '__main__':
         ids = tok.encode(list(text))
         ids_batch = torch.Tensor([ids]).long()
         mask_batch = torch.Tensor([[1] * len(ids)]).long()
-        cl.to_lattice(ids_batch, mask_batch, print_result=False)
+        lllt = clt.to_lattice(ids_batch, mask_batch, print_result=False)
+        lllf = clf.to_lattice(ids_batch, mask_batch, print_result=False)
+        print('%s  %s  %s' % (count, len(lllt[0]), len(lllf[0])))
+        if len(lllt[0]) > len(lllf[0]):
+            raise Exception('aaaaaaa')
         count += 1
     dt2 = dt.datetime.now()
     print((dt2 - dt1).total_seconds())

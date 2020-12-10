@@ -16,11 +16,13 @@ import codecs
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 config.print_config()
+entity_tags = None # {'LOC', 'PER', 'ORG'}
+print('entity_tags %s' % entity_tags)
 bert_model_path = './bert_model/pytorch_pretrained_bert/bert-base-chinese/'
 tok = data.Tokenizer(path=os.path.join(bert_model_path, 'vocab.txt'))
 dsm = data.DataSetManager(path='./data/%s/%s' % (config.DATA_SET, config.LABEL_FORMAT),
                           vocab_path=os.path.join(bert_model_path, 'vocab.txt'),
-                          batch_size=config.BATCH_SIZE, shuffle=True)
+                          batch_size=config.BATCH_SIZE, shuffle=True, entity_tags=entity_tags)
 train_data_set = dsm.train_data_set
 met = metric.Metric(label_set=train_data_set.label_tokenizer.label_set,
                     tag_set=train_data_set.tag_set, format=config.LABEL_FORMAT)

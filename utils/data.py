@@ -106,7 +106,7 @@ class LabelTokenizer:
 class DataSet:
     def __init__(self, path: str,
                  tokenizer: Tokenizer, label_tokenizer: LabelTokenizer or None,
-                 batch_size: int, shuffle: bool = True):
+                 batch_size: int, shuffle: bool = True, entity_tags: set = None):
         '''
         :param path: data file path
         :param label_tokenizer: LabelTokenizer, may be None.
@@ -116,6 +116,7 @@ class DataSet:
         self.tokenizer = tokenizer
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.entity_tags = entity_tags
         self.sbc_to_dbc_ignore_set = {ord('？'), ord('！'), ord('：'), ord('；'), ord('，'), ord('。'), 
                                       ord('“'), ord('”'), ord('‘'), ord('’'), }
 
@@ -271,6 +272,9 @@ class DataSet:
                 assert len(line_split) == 2, 'line must be separated by spacing.'
                 char = line_split[0]
                 label = line_split[1]
+                tag = label.split(LABEL_SEP)[-1]
+                if self.entity_tags is not None and tag not in self.entity_tags:
+                    label = OUT_LABEL
                 label_count_dict.setdefault(label, 0)
                 label_count_dict[label] += 1
                 seq.append([char, label])
@@ -331,7 +335,7 @@ class DataSet:
                 print(str(self.seq_label_list[index][i]) + ' ' + seq[i] + ' ' + label[i])
 
 class DataSetManager:
-    def __init__(self, path: str, vocab_path: str, batch_size: int, shuffle: bool):
+    def __init__(self, path: str, vocab_path: str, batch_size: int, shuffle: bool, entity_tags: set or None):
         '''
         :param path: a folder contains three files train.txt, test.txt, valid.txt
         :param vocab_path: a file named vocab.txt
@@ -348,13 +352,13 @@ class DataSetManager:
         self.tokenizer = Tokenizer(path=vocab_path)
         self.train_data_set = DataSet(path=train_file_path,
                                       tokenizer=self.tokenizer, label_tokenizer=None,
-                                      batch_size=batch_size, shuffle=shuffle)
+                                      batch_size=batch_size, shuffle=shuffle, entity_tags=entity_tags)
         self.test_data_set = DataSet(path=test_file_path,
                                      tokenizer=self.tokenizer, label_tokenizer=self.train_data_set.label_tokenizer,
-                                     batch_size=batch_size, shuffle=shuffle)
+                                     batch_size=batch_size, shuffle=shuffle, entity_tags=entity_tags)
         self.valid_data_set = DataSet(path=valid_file_path,
                                      tokenizer=self.tokenizer, label_tokenizer=self.train_data_set.label_tokenizer,
-                                     batch_size=batch_size, shuffle=shuffle)
+                                     batch_size=batch_size, shuffle=shuffle, entity_tags=entity_tags)
         print(self.train_data_set.info())
 
     def on_epoch_end(self):
