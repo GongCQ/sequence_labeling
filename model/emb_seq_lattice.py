@@ -374,6 +374,7 @@ class LatticeLSTM(nn.Module):
                                                            lattice_seq_batch=reverse_lattice_seq_batch,
                                                            seq_ids=reverse_seq_ids, mask=reverse_mask,
                                                            char_emb_seq=reverse_char_emb_seq)
+            reverse_char_hidden_state = reverse_char_hidden_state[:, reverse_index, :]
             char_hidden_state = torch.cat([char_hidden_state, reverse_char_hidden_state], dim=2)
 
         feature_seq = self.full_conn(char_hidden_state)
