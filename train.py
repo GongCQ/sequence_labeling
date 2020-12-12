@@ -58,7 +58,7 @@ emb_seq_model = LatticeLSTM(tokenizer=tok, word_tokenizer=word_tok,
                             word_emb_array=word_emb_array, char_emb_array=char_emb_array,
                             label_num=train_data_set.label_tokenizer.label_num,
                             char_input_size=300, word_input_size=200, hidden_size=100,
-                            emb_max_norm=emb_max_norm, emb_trainable=emb_trainable)
+                            emb_max_norm=emb_max_norm, emb_trainable=emb_trainable, bidirectional=bidirectional)
 # -----------------------
 seq_label_model = SeqLabel(emb_seq_model=emb_seq_model,
                            label_num=train_data_set.label_tokenizer.label_num)
