@@ -110,6 +110,20 @@ class Lattice:
 
         return lattice_seq_batch
 
+    def reverse(self, lattice_seq_batch, seq_ids):
+        seq_len = seq_ids.shape[1]
+        reverse_lattice_seq_batch = []
+        for lattice_seq in lattice_seq_batch:
+            reverse_lattice_seq = []
+            for i, lattice in enumerate(lattice_seq):
+                word_begin, word_len, word_id = lattice
+                reverse_word_begin = seq_len - word_begin - word_len
+                reverse_lattice = (reverse_word_begin, word_len, word_id)
+                reverse_lattice_seq.append(reverse_lattice)
+            reverse_lattice_seq_batch.append(reverse_lattice_seq)
+        return reverse_lattice_seq_batch
+
+
 class LatticeWordCell(nn.Module):
     def __init__(self, input_size, hidden_size, bias=True):
         '''
@@ -227,6 +241,12 @@ class LatticeLSTM(nn.Module):
         self.hidden_size = hidden_size
         self.lattice_word_cell = LatticeWordCell(input_size=word_input_size, hidden_size=hidden_size, bias=word_bias)
         self.lattice_char_cell = LatticeCharCell(input_size=char_input_size, hidden_size=hidden_size, bias=char_bias)
+        if bidirectional:
+            self.reverse_lattice_word_cell = LatticeWordCell(input_size=word_input_size, hidden_size=hidden_size,
+                                                             bias=word_bias)
+            self.reverse_lattice_char_cell = LatticeCharCell(input_size=char_input_size, hidden_size=hidden_size,
+                                                             bias=char_bias)
+
         self.dropout_prob = dropout
         self.dropout = nn.Dropout(p=dropout)
         self.bidirectional = bidirectional
@@ -251,17 +271,18 @@ class LatticeLSTM(nn.Module):
             self.lattice_word_cell = self.lattice_word_cell.cuda()
             self.lattice_char_cell = self.lattice_char_cell.cuda()
             self.full_conn = self.full_conn.cuda()
+            if bidirectional:
+                self.reverse_lattice_word_cell = self.reverse_lattice_word_cell.cuda()
+                self.reverse_lattice_char_cell = self.reverse_lattice_char_cell.cuda()
 
-    def forward(self, seq_ids, mask):
+    def _lattice_flow(self, word_cell, char_cell, lattice_seq_batch, seq_ids, mask, char_emb_seq = None):
         batch_size = seq_ids.shape[0]
         seq_len = seq_ids.shape[1]
-        # list of list of triple-tuple, [batch_size, num_word_in_seq, (word_begin, word_len, word_id)]
-        lattice_seq_batch = self.lattice.to_lattice(seq_ids=seq_ids, mask=mask)
         end_lattice_dict_seq = [[[] for b in range(batch_size)] for s in range(seq_len)]
         for batch, lattice_seq in enumerate(lattice_seq_batch):
             for word_begin, word_len, word_id in lattice_seq:
                 word_end = word_begin + word_len - 1
-                if word_len > 1: # important!!!
+                if word_len > 1:  # important!!!
                     end_lattice_dict_seq[word_end][batch].append((word_begin, word_len, word_id, batch))
 
         init_hidden_cell_state = (torch.zeros(batch_size, self.hidden_size), torch.zeros(batch_size, self.hidden_size))
@@ -271,7 +292,7 @@ class LatticeLSTM(nn.Module):
         # char_cell_state = torch.zeros(batch_size, seq_len, self.hidden_size)
         char_hidden_list = []
         char_cell_list = []
-        for s in range(seq_len): # sequence direction
+        for s in range(seq_len):  # sequence direction
             # word lstm cell ...
             end_lattice_batch = end_lattice_dict_seq[s]
             all_num_word = [len(end_lattice_list) for end_lattice_list in end_lattice_batch]
@@ -296,9 +317,9 @@ class LatticeLSTM(nn.Module):
                     flatten_cell_batch = flatten_cell_batch.cuda()
 
                 flatten_word_emb_batch = self.word_emb(flatten_word_id_batch)
-                flatten_c_b_e_w_batch = self.lattice_word_cell(x_b_e_w=flatten_word_emb_batch,
-                                                                h_b_c=flatten_hidden_batch,
-                                                                c_b_c=flatten_cell_batch)
+                flatten_c_b_e_w_batch = word_cell(x_b_e_w=flatten_word_emb_batch,
+                                                  h_b_c=flatten_hidden_batch,
+                                                  c_b_c=flatten_cell_batch)
             else:
                 flatten_c_b_e_w_batch = torch.zeros(0, self.hidden_size).float()
             if USE_GPU:
@@ -313,18 +334,48 @@ class LatticeLSTM(nn.Module):
             for batch, num_word in enumerate(all_num_word):
                 if num_word > 0:
                     all_c_b_e_w[batch, : num_word, :] = \
-                        flatten_c_b_e_w_batch[begin_in_flatten_batch : begin_in_flatten_batch + num_word, :]
+                        flatten_c_b_e_w_batch[begin_in_flatten_batch: begin_in_flatten_batch + num_word, :]
                 begin_in_flatten_batch += num_word
             h_c_0 = (char_hidden_list[s - 1], char_cell_list[s - 1]) if s > 0 else init_hidden_cell_state
-            input = self.char_emb(seq_ids[:, s])
-            h_1, c_j_c = \
-                self.lattice_char_cell(input=input, h_c_0=h_c_0, all_c_b_e_w=all_c_b_e_w, all_num_word=all_num_word)
+            input = self.char_emb(seq_ids[:, s]) if char_emb_seq is None else char_emb_seq[:, s, :]
+            h_1, c_j_c = char_cell(input=input, h_c_0=h_c_0, all_c_b_e_w=all_c_b_e_w, all_num_word=all_num_word)
             char_hidden_list.append(h_1)
             char_cell_list.append(c_j_c)
 
         char_hidden_state = torch.stack(char_hidden_list, dim=1)
         if self.dropout_prob > 0:
             char_hidden_state = self.dropout(char_hidden_state)
+        return char_hidden_state
+
+    def forward(self, seq_ids, mask, char_emb_seq = None):
+        '''
+        :param seq_ids: tensor, [batch_size, seq_len]
+        :param mask: tensor, [batch_size, seq_len]
+        :param char_emb_seq: tensor, [batch_size, seq_len, char_emb_size]
+        :return:
+        '''
+        # list of list of triple-tuple, [batch_size, num_word_in_seq, (word_begin, word_len, word_id)]
+        lattice_seq_batch = self.lattice.to_lattice(seq_ids=seq_ids, mask=mask)
+        char_hidden_state = self._lattice_flow(word_cell=self.lattice_word_cell,
+                                               char_cell=self.lattice_char_cell,
+                                               lattice_seq_batch=lattice_seq_batch, seq_ids=seq_ids, mask=mask,
+                                               char_emb_seq=char_emb_seq)
+
+        if self.bidirectional:
+            seq_len = seq_ids.shape[1]
+            reverse_index = list(range(seq_len))
+            reverse_index.reverse()
+            reverse_seq_ids = seq_ids[:, reverse_index]
+            reverse_mask = mask[:, reverse_index]
+            reverse_char_emb_seq = char_emb_seq[:, reverse_index, :] if char_emb_seq is not None else None
+            reverse_lattice_seq_batch = self.lattice.reverse(lattice_seq_batch=lattice_seq_batch, seq_ids=seq_ids)
+            reverse_char_hidden_state = self._lattice_flow(word_cell=self.reverse_lattice_word_cell,
+                                                           char_cell=self.reverse_lattice_char_cell,
+                                                           lattice_seq_batch=reverse_lattice_seq_batch,
+                                                           seq_ids=reverse_seq_ids, mask=reverse_mask,
+                                                           char_emb_seq=reverse_char_emb_seq)
+            char_hidden_state = torch.cat([char_hidden_state, reverse_char_hidden_state], dim=2)
+
         feature_seq = self.full_conn(char_hidden_state)
         return feature_seq
 
