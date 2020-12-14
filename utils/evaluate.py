@@ -27,9 +27,33 @@ class Evaluator:
         except Exception as e:
             warnings.warn('fail to load test file.')
 
+    def _eval_test_text(self):
+        if not(len(self.test_text_list) == len(self.test_seq_ids_batch) and
+            len(self.test_text_list) == len(self.test_mask_batch) and len(self.test_text_list) > 0):
+            warnings.warn('invalid test texts.')
+            return
+
+        seq_ids = torch.Tensor(self.test_seq_ids_batch).to(torch.int64)
+        mask = torch.Tensor(self.test_mask_batch).to(torch.bool)
+        if USE_GPU:
+            seq_ids = seq_ids.cuda()
+            mask = mask.cuda()
+        path_score, predict_label_ids_batch = self.model(seq_ids=seq_ids, mask=mask)
+        if USE_GPU:
+            predict_label_ids_batch = predict_label_ids_batch.cpu()
+        predict_label_ids_batch = predict_label_ids_batch.detach().numpy()
+        predict_label_batch = self.data_set_manager.train_data_set.decode_label_batch(predict_label_ids_batch, mask)
+        print('eval_test_text --------')
+        for text, predict_label in zip(self.test_text_list, predict_label_batch):
+            print(''.join([(' %s/%s ' % (char, label))
+                           if label != 'O'
+                           else char
+                           for char, label in zip(text, predict_label)]))
+        print('-----------------------')
 
 
-    def eval(self, seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail=False):
+    def eval(self, seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch,
+             print_detail=False, print_eval_test=False):
         label_batch = []
         predict_label_batch = []
         for i in range(0, len(seq_ids_batch), BATCH_SIZE):
@@ -79,7 +103,13 @@ class Evaluator:
             for entity in entity_list:
                 print('%6s  precision %.6f  recall %.6f' % (entity, precision_dict_2[entity], recall_dict_2[entity]))
 
-    def random_eval(self, size, print_detail=False):
+        if print_eval_test:
+            try:
+                self._eval_test_text()
+            except Exception as e:
+                print('fail to eval_test_text, %s' % e)
+
+    def random_eval(self, size, print_detail=False, print_eval_test=False):
         if size == 0 or size is None:
             size = sys.maxsize
         line = 'random_eval --------' if size < sys.maxsize else 'FULL_EVAL ****************'
@@ -93,8 +123,9 @@ class Evaluator:
             seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch = data_set.get_random_batch(size)
             print()
             print('.... %6s set ....' % name)
-            self.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail)
+            self.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch,
+                      print_detail, print_eval_test)
         print('%s %s size %s' % (line, dt.datetime.now(), size))
 
-    def full_eval(self, print_detail=True):
-        self.random_eval(sys.maxsize, print_detail)
+    def full_eval(self, print_detail=True, print_eval_test=True):
+        self.random_eval(sys.maxsize, print_detail, print_eval_test)

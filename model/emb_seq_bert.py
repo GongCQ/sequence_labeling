@@ -39,7 +39,10 @@ class EmbSeqBert(nn.Module):
                                                          output_all_encoded_layers=True)
             char_emb_seq = char_emb_seq_list[BERT_LAYER_INDEX]
 
-        feature_seq = self.full_conn(self.dropout(char_emb_seq))
+        if BERT_FULL_CONN_DROP_OUT > 0:
+            feature_seq = self.full_conn(self.dropout(char_emb_seq) * (1 - BERT_FULL_CONN_DROP_OUT))
+        else:
+            feature_seq = self.full_conn(char_emb_seq)
         # print('char_emb_seq norm     %s' % str(float(char_emb_seq.abs().mean())))
         # print('feature_seq norm      %s' % str(float(feature_seq.abs().mean())))
         # print('full_conn weight norm %s' % str(float(self.full_conn.weight.abs().mean())))

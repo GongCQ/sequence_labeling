@@ -27,7 +27,7 @@ train_data_set = dsm.train_data_set
 met = metric.Metric(label_set=train_data_set.label_tokenizer.label_set,
                     tag_set=train_data_set.tag_set, format=config.LABEL_FORMAT)
 
-MODEL = 'BERT'
+MODEL = 'LSTM'
 if MODEL == 'BERT':
     print('**** BERT MODEL ****')
     emb_seq_model = EmbSeqBert(bert_model_path=bert_model_path,
@@ -93,7 +93,7 @@ for i in range(config.EPOCH_NUM):
             print('\nepoch %s, batch %s， %s ----------------------------------------' % (i, c, dt.datetime.now()))
             print('loss %s' % str(loss))
             print()
-            evaluator.random_eval(config.EVAL_SIZE, print_detail=False)
+            evaluator.random_eval(config.EVAL_SIZE, print_detail=False, print_eval_test=True)
 
         # evaluator.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail=False)
 
