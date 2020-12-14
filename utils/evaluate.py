@@ -39,9 +39,8 @@ class Evaluator:
             seq_ids = seq_ids.cuda()
             mask = mask.cuda()
         path_score, predict_label_ids_batch = self.model(seq_ids=seq_ids, mask=mask)
-        if USE_GPU:
-            predict_label_ids_batch = predict_label_ids_batch.cpu()
-        predict_label_ids_batch = predict_label_ids_batch.detach().numpy()
+        predict_label_ids_batch = predict_label_ids_batch.cpu().numpy()
+        mask = mask.cpu().numpy()
         predict_label_batch = self.data_set_manager.train_data_set.decode_label_batch(predict_label_ids_batch, mask)
         print('eval_test_text --------')
         for text, predict_label in zip(self.test_text_list, predict_label_batch):
