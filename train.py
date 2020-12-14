@@ -93,7 +93,7 @@ for i in range(config.EPOCH_NUM):
             print('\nepoch %s, batch %s， %s ----------------------------------------' % (i, c, dt.datetime.now()))
             print('loss %s' % str(loss))
             print()
-            evaluator.random_eval(config.EVAL_SIZE, print_detail=False, print_eval_test=True)
+            evaluator.random_eval(config.EVAL_SIZE, print_detail=False, print_eval_test=False)
 
         # evaluator.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail=False)
 

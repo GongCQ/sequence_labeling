@@ -27,7 +27,7 @@ class Lattice:
         self.ignore_invalid_word = ignore_invalid_word
         self.search_forward_len = 4
 
-    def to_lattice(self, seq_ids, mask, print_result=False):
+    def to_lattice(self, seq_ids, mask, print_result=False, print_format_error=False):
         '''
         the input is as same as emb_seq_model.
         :param seq_ids: tensor, shape [batch_size * seq_len], with char id selected in [0, 1, 2, ..., vocab_size - 1]
@@ -73,7 +73,8 @@ class Lattice:
                     fraction_list.append((current_word, current_matched_begin))
                 for fraction in fraction_list:
                     if fraction[0] != text[fraction[1]: fraction[1] + len(fraction[0])]:
-                        print('check format error.\n%s\n%s\n%s' % (text, seg, fraction_list))
+                        if print_format_error:
+                            print('check format error.\n%s\n%s\n%s' % (text, seg, fraction_list))
                         cut_all_fail = True
                         break
 
@@ -84,7 +85,7 @@ class Lattice:
                 for current_word in seg[1 : ]:
                     fraction_list.append((current_word, accum_len))
                     accum_len += len(current_word)
-                if cut_all_fail:
+                if cut_all_fail and print_format_error:
                     print('cut_all_fail and turn to cut_all=False  %s' % fraction_list)
             fraction_list_batch.append(fraction_list)
 
