@@ -52,8 +52,7 @@ class Evaluator:
         print('-----------------------')
 
 
-    def eval(self, seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch,
-             print_detail=False, print_eval_test=False):
+    def eval(self, seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail=False):
         label_batch = []
         predict_label_batch = []
         for i in range(0, len(seq_ids_batch), BATCH_SIZE):
@@ -103,11 +102,6 @@ class Evaluator:
             for entity in entity_list:
                 print('%6s  precision %.6f  recall %.6f' % (entity, precision_dict_2[entity], recall_dict_2[entity]))
 
-        if print_eval_test:
-            try:
-                self._eval_test_text()
-            except Exception as e:
-                print('fail to eval_test_text, %s' % e)
 
     def random_eval(self, size, print_detail=False, print_eval_test=False):
         if size == 0 or size is None:
@@ -123,9 +117,14 @@ class Evaluator:
             seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch = data_set.get_random_batch(size)
             print()
             print('.... %6s set ....' % name)
-            self.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch,
-                      print_detail, print_eval_test)
+            self.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail)
         print('%s %s size %s' % (line, dt.datetime.now(), size))
+
+        if print_eval_test:
+            try:
+                self._eval_test_text()
+            except Exception as e:
+                print('fail to eval_test_text, %s' % e)
 
     def full_eval(self, print_detail=True, print_eval_test=True):
         self.random_eval(sys.maxsize, print_detail, print_eval_test)
