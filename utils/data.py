@@ -133,6 +133,29 @@ class DataSet:
 
         self._regenerate_samples()
 
+    def encode_text_batch(self, text_list: list):
+        max_len = 0
+        seq_ids_batch = []
+        for text in text_list:
+            seq = [self._format_char(char) for char in text]
+            seq_ids = self.tokenizer.encode(seq)
+            if len(seq_ids) > SEQ_MAX_LEN:
+                seq_ids = seq_ids[ : SEQ_MAX_LEN]
+            seq_ids_batch.append(seq_ids)
+            if len(seq_ids) > max_len:
+                max_len = len(seq_ids)
+
+        mask_batch = []
+        for s, seq_ids in enumerate(seq_ids_batch):
+            mask = [1] * len(seq_ids)
+            if len(seq_ids) < max_len:
+                supply_len = max_len - len(seq_ids)
+                seq_ids_batch[s] += [PAD_INDEX] * supply_len
+                mask += [0] * supply_len
+            mask_batch.append(mask)
+
+        return seq_ids_batch, mask_batch
+
     def _regenerate_samples(self):
         if self.shuffle:
             random.shuffle(self.seq_label_list)
@@ -238,6 +261,9 @@ class DataSet:
             inside_code -= 65248
         return unichr(inside_code)
 
+    def _format_char(self, char):
+        return self.sbc_to_dbc(char.lower())
+
     def _format_seq(self, seq):
         # --------------------------------------
         # if len(seq) > SEQ_MAX_LEN - 2:
@@ -249,7 +275,7 @@ class DataSet:
         if len(seq) > SEQ_MAX_LEN:
             seq = seq[ : SEQ_MAX_LEN]
         for char_label in seq:
-            char_label[0] = self.sbc_to_dbc(char_label[0].lower())
+            char_label[0] = self._format_char(char_label[0])
         # --------------------------------------
         return seq
 

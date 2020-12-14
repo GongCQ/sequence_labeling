@@ -1,15 +1,33 @@
+import os
 import sys
 import datetime as dt
+import warnings
 import torch
 from utils.data import DataSetManager
 from utils.metric import Metric
 from utils.config import BATCH_SIZE, USE_GPU
 
 class Evaluator:
-    def __init__(self, model, data_set_manager: DataSetManager, metric: Metric):
+    def __init__(self, model, data_set_manager: DataSetManager, metric: Metric, test_file_path=None):
         self.model = model
         self.data_set_manager = data_set_manager
         self.metric = metric
+        self.test_text_list = []
+        self.test_seq_ids_batch = []
+        self.test_mask_batch = []
+        if test_file_path is None:
+            test_file_path = os.path.join('data', 'test_file.txt')
+        try:
+            test_file = open(test_file_path, encoding='utf-8')
+            for line in test_file:
+                text = line.strip()
+                self.test_text_list.append(text)
+            self.test_seq_ids_batch, self.test_mask_batch = \
+                self.data_set_manager.train_data_set.encode_text_batch(self.test_text_list)
+        except Exception as e:
+            warnings.warn('fail to load test file.')
+
+
 
     def eval(self, seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail=False):
         label_batch = []
