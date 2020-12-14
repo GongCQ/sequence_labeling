@@ -232,7 +232,8 @@ class LatticeLSTM(nn.Module):
                  word_emb_array, char_emb_array, label_num,
                  char_input_size, word_input_size, hidden_size, char_bias=True, word_bias=True,
                  dropout=0, bidirectional=False, emb_max_norm=None, emb_trainable=True,
-                 emb_learning_rate=0.001, lstm_learning_rate=0.01, full_conn_learning_rate=0.01):
+                 emb_learning_rate=0.001, lstm_learning_rate=0.01, full_conn_learning_rate=0.01,
+                 lstm_weight_decay=0, full_conn_weight_decay=0):
         super(LatticeLSTM, self).__init__()
         self.lattice = Lattice(tokenizer=tokenizer, word_tokenizer=word_tokenizer,
                                cut_all=cut_all, ignore_invalid_word=ignore_invalid_word)
@@ -254,6 +255,8 @@ class LatticeLSTM(nn.Module):
         self.emb_learning_rate = emb_learning_rate
         self.lstm_learning_rate = lstm_learning_rate
         self.full_conn_learning_rate = full_conn_learning_rate
+        self.lstm_weight_decay = lstm_weight_decay
+        self.full_conn_weight_decay = full_conn_weight_decay
 
         self.word_emb = nn.Embedding.from_pretrained(embeddings=torch.Tensor(word_emb_array),
                                                 padding_idx=word_tokenizer.pad_id, max_norm=emb_max_norm)
@@ -274,6 +277,21 @@ class LatticeLSTM(nn.Module):
             if bidirectional:
                 self.reverse_lattice_word_cell = self.reverse_lattice_word_cell.cuda()
                 self.reverse_lattice_char_cell = self.reverse_lattice_char_cell.cuda()
+
+        print('---- parameters of LatticeLSTM ----')
+        print('cut_all %s' % cut_all)
+        print('ignore_invalid_word %s' % ignore_invalid_word)
+        print('hidden_size %s' % hidden_size)
+        print('dropout %s' % dropout)
+        print('bidirectional %s' % bidirectional)
+        print('emb_max_norm %s' % emb_max_norm)
+        print('emb_trainable %s' % emb_trainable)
+        print('emb_learning_rate %s' % emb_learning_rate)
+        print('lstm_learning_rate %s' % lstm_learning_rate)
+        print('full_conn_learning_rate %s' % full_conn_learning_rate)
+        print('lstm_weight_decay %s' % lstm_weight_decay)
+        print('full_conn_weight_decay %s' % full_conn_weight_decay)
+        print('-----------------------------------')
 
     def _lattice_flow(self, word_cell, char_cell, lattice_seq_batch, seq_ids, mask, char_emb_seq = None):
         batch_size = seq_ids.shape[0]
@@ -378,6 +396,8 @@ class LatticeLSTM(nn.Module):
             char_hidden_state = torch.cat([char_hidden_state, reverse_char_hidden_state], dim=2)
 
         feature_seq = self.full_conn(char_hidden_state)
+        if self.dropout_prob > 0:
+            feature_seq = self.dropout(feature_seq) * (1 - self.dropout_prob)
         return feature_seq
 
     def get_params_config(self):
@@ -386,11 +406,14 @@ class LatticeLSTM(nn.Module):
                         {'params': self.char_emb.parameters(),
                          'lr': self.emb_learning_rate},
                         {'params': self.lattice_word_cell.parameters(),
-                         'lr': self.lstm_learning_rate},
+                         'lr': self.lstm_learning_rate,
+                         'weight_decay': self.lstm_weight_decay},
                         {'params': self.lattice_char_cell.parameters(),
-                         'lr': self.lstm_learning_rate},
+                         'lr': self.lstm_learning_rate,
+                         'weight_decay': self.lstm_weight_decay},
                         {'params': self.full_conn.parameters(),
-                         'lr': self.full_conn_learning_rate}]
+                         'lr': self.full_conn_learning_rate,
+                         'weight_decay': self.full_conn_weight_decay}]
         return param_config
 
 if __name__ == '__main__':

@@ -27,38 +27,44 @@ train_data_set = dsm.train_data_set
 met = metric.Metric(label_set=train_data_set.label_tokenizer.label_set,
                     tag_set=train_data_set.tag_set, format=config.LABEL_FORMAT)
 
-# -----------------------
-# emb_seq_model = EmbSeqBert(bert_model_path=bert_model_path,
-#                            label_num=train_data_set.label_tokenizer.label_num)
-# .......................
-# emb_array = data.get_char_emb_array(os.path.join('word_emb', 'char_emb_300d_nl2sql.txt'), tok)
-# emb_seq_model = EmbSeqLSTM(emb_array=emb_array, label_num=train_data_set.label_tokenizer.label_num)
-# .......................
-print('%s begin construct tok and emb.' % dt.datetime.now())
-bidirectional = True
-cut_all = True
-ignore_invalid_word = False
-emb_trainable = True
-emb_max_norm = None
-word_emb_path = os.path.join('word_emb', 'word_emb_200d_tencent_ailab_top_10w.txt')
-char_emb_path = os.path.join('word_emb', 'char_emb_300d_nl2sql.txt')
-print('bidirectional: %s' % bidirectional)
-print('cut_all: %s' % cut_all)
-print('ignore_invalid_word: %s' % ignore_invalid_word)
-print('emb_trainable: %s' % emb_trainable)
-print('emb_max_norm: %s' % emb_max_norm)
-print('word_emb_path: %s' % word_emb_path)
-print('char_emb_path: %s' % char_emb_path)
-word_tok = data.WordTokenizer(word_emb_path=word_emb_path)
-char_emb_array = data.get_char_emb_array(char_emb_path, tokenizer=tok)
-word_emb_array = word_tok.emb_array
-print('%s end construct tok and emb.' % dt.datetime.now())
-emb_seq_model = LatticeLSTM(tokenizer=tok, word_tokenizer=word_tok,
-                            cut_all=cut_all, ignore_invalid_word=ignore_invalid_word,
-                            word_emb_array=word_emb_array, char_emb_array=char_emb_array,
-                            label_num=train_data_set.label_tokenizer.label_num,
-                            char_input_size=300, word_input_size=200, hidden_size=100,
-                            emb_max_norm=emb_max_norm, emb_trainable=emb_trainable, bidirectional=bidirectional)
+MODEL = 'BERT'
+if MODEL == 'BERT':
+    print('**** BERT MODEL ****')
+    emb_seq_model = EmbSeqBert(bert_model_path=bert_model_path,
+                               label_num=train_data_set.label_tokenizer.label_num)
+elif MODEL == 'LSTM':
+    print('**** LSTM MODEL ****')
+    emb_array = data.get_char_emb_array(os.path.join('word_emb', 'char_emb_300d_nl2sql.txt'), tok)
+    emb_seq_model = EmbSeqLSTM(emb_array=emb_array, label_num=train_data_set.label_tokenizer.label_num)
+elif MODEL == 'LATTICE':
+    print('**** LATTICE MODEL ****')
+    print('%s begin construct tok and emb.' % dt.datetime.now())
+    bidirectional = True
+    cut_all = True
+    ignore_invalid_word = False
+    emb_trainable = True
+    emb_max_norm = None
+    word_emb_path = os.path.join('word_emb', 'word_emb_200d_tencent_ailab_top_10w.txt')
+    char_emb_path = os.path.join('word_emb', 'char_emb_300d_nl2sql.txt')
+    print('bidirectional: %s' % bidirectional)
+    print('cut_all: %s' % cut_all)
+    print('ignore_invalid_word: %s' % ignore_invalid_word)
+    print('emb_trainable: %s' % emb_trainable)
+    print('emb_max_norm: %s' % emb_max_norm)
+    print('word_emb_path: %s' % word_emb_path)
+    print('char_emb_path: %s' % char_emb_path)
+    word_tok = data.WordTokenizer(word_emb_path=word_emb_path)
+    char_emb_array = data.get_char_emb_array(char_emb_path, tokenizer=tok)
+    word_emb_array = word_tok.emb_array
+    print('%s end construct tok and emb.' % dt.datetime.now())
+    emb_seq_model = LatticeLSTM(tokenizer=tok, word_tokenizer=word_tok,
+                                cut_all=cut_all, ignore_invalid_word=ignore_invalid_word,
+                                word_emb_array=word_emb_array, char_emb_array=char_emb_array,
+                                label_num=train_data_set.label_tokenizer.label_num,
+                                char_input_size=300, word_input_size=200, hidden_size=100,
+                                emb_max_norm=emb_max_norm, emb_trainable=emb_trainable, bidirectional=bidirectional)
+else:
+    raise Exception('UNKNOWN MODEL %s.' % MODEL)
 # -----------------------
 seq_label_model = SeqLabel(emb_seq_model=emb_seq_model,
                            label_num=train_data_set.label_tokenizer.label_num)

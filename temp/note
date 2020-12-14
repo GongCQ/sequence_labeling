@@ -8,6 +8,7 @@
 7.自动求导 https://pytorch.org/docs/stable/autograd.html#torch.Tensor.requires_grad
 8.torch里的dropout在执行后会自动对向量进行1/(1-p)的放大！！具体参见torch的文档！！
 9.jieba分词cut_all=True的bug似乎在python3.6中没有，在python3.7中有。
+10.各种模型在msra数据集上都很不稳定，在测试集上的准确率上窜下跳，虽然之前在people_daily_1998上都很稳定，可能是因为people_daily_1998有时间和数字这两个容易识别的实体占大头的缘故
 
 
 自己的lstm和torch的lstm的对比：
@@ -16,7 +17,6 @@ my_cell       : mc   (自己的lstmcell，否则torch的lstmcell)
 dropout_h_out : dho  (对输出的h作dropout，否则不作dropout)
 dropout_h_next: dhn  (对传到下一个单元的h作dropout，否则不作dropout)
 dropout_c_next: dcn  (对传到下一个单元的c作dropout，否则不作dropout)
-dropout       : d    (dropout概率，全部取0.5)
 bidirectional : bid  (双向lstm，否则单向lstm)
 epoch = 48
 my_lstm, my_cell, dropout_h_out, dropout_h_next, dropout_c_next, bidirectional, dropout,         f1

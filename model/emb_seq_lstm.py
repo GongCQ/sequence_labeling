@@ -11,8 +11,10 @@ import model.lstm_ as lstm_
 
 class EmbSeqLSTM(nn.Module):
     def __init__(self, emb_array, label_num,
-                 emb_trainable=True, emb_max_norm=1, hidden_size=100, dropout=0.5, bidirectional=True,
-                 emb_learning_rate=0.001, lstm_learning_rate=0.01, full_conn_learning_rate=0.01, default_lstm=False):
+                 emb_trainable=True, emb_max_norm=1, hidden_size=100, dropout=0, bidirectional=True,
+                 emb_learning_rate=0.001, lstm_learning_rate=0.01, full_conn_learning_rate=0.01,
+                 lstm_weight_decay=0, full_conn_weight_decay=0,
+                 default_lstm=False):
         '''
         :param emb_array: a 2-D array with shape [vocab_size, emb_size], which is obtained from data.get_char_emb_array
         :param label_num: the number of labels, exclude the begin and end label.
@@ -25,6 +27,8 @@ class EmbSeqLSTM(nn.Module):
         self.emb_learning_rate = emb_learning_rate
         self.lstm_learning_rate = lstm_learning_rate
         self.full_conn_learning_rate = full_conn_learning_rate
+        self.lstm_weight_decay = lstm_weight_decay
+        self.full_conn_weight_decay = full_conn_weight_decay
 
         self.emb = nn.Embedding.from_pretrained(embeddings=torch.Tensor(emb_array),
                                                 padding_idx=PAD_INDEX, max_norm=emb_max_norm)
@@ -34,13 +38,27 @@ class EmbSeqLSTM(nn.Module):
         self.lstm = LSTM(input_size=self.char_emb_size, hidden_size=hidden_size,
                             num_layers=1, bias=True, batch_first=True, dropout=dropout,
                             bidirectional=bidirectional)
-        print('type of LSTM %s' % type(self.lstm))
         self.full_conn = nn.Linear(self.hidden_size * (2 if bidirectional else 1), label_num + 2)
 
         if USE_GPU:
             self.emb = self.emb.cuda()
             self.lstm = self.lstm.cuda()
             self.full_conn = self.full_conn.cuda()
+
+        print('---- parameters of EmbSeqLSTM ----')
+        print('type of LSTM            %s' % type(self.lstm))
+        print('default_lstm            %s' % default_lstm)
+        print('dropout                 %s' % dropout)
+        print('bidirectional           %s' % bidirectional)
+        print('emb_trainable           %s' % emb_trainable)
+        print('emb_max_norm            %s' % emb_max_norm)
+        print('hidden_size             %s' % hidden_size)
+        print('emb_learning_rate       %s' % emb_learning_rate)
+        print('lstm_learning_rate      %s' % lstm_learning_rate)
+        print('full_conn_learning_rate %s' % full_conn_learning_rate)
+        print('lstm_weight_decay       %s' % lstm_weight_decay)
+        print('full_conn_weight_decay  %s' % full_conn_weight_decay)
+        print('----------------------------------')
 
     def forward(self, seq_ids, mask):
         '''
@@ -65,9 +83,11 @@ class EmbSeqLSTM(nn.Module):
 
     def get_params_config(self):
         params_config = [{'params': self.full_conn.parameters(),
-                          'lr': self.full_conn_learning_rate},
+                          'lr': self.full_conn_learning_rate,
+                          'weight_decay': self.full_conn_weight_decay},
                          {'params': self.lstm.parameters(),
-                          'lr': self.lstm_learning_rate}]
+                          'lr': self.lstm_learning_rate,
+                          'weight_decay': self.lstm_weight_decay}]
         if self.emb_trainable:
             params_config.append({'params': self.emb.parameters(),
                                   'lr': self.emb_learning_rate})
