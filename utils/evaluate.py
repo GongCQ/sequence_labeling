@@ -51,7 +51,8 @@ class Evaluator:
         print('-----------------------')
 
 
-    def eval(self, seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail=False):
+    def eval(self, seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch,
+             print_detail=False, label=''):
         label_batch = []
         predict_label_batch = []
         for i in range(0, len(seq_ids_batch), BATCH_SIZE):
@@ -88,8 +89,8 @@ class Evaluator:
             self.metric.entity_wise_metric_batch(true_label_list_batch=label_batch,
                                                  predict_label_list_batch=predict_label_batch)
 
-        print('label-wise : precision %.6f, recall %.6f, f_score %s' % (total_precision, total_recall, total_f_score))
-        print('entity-wise: precision %.6f, recall %.6f, f_score %s' % (total_precision_2, total_recall_2, total_f_score_2))
+        print('[%8s] label-wise : precision %.6f, recall %.6f, f_score %s' % (label, total_precision, total_recall, total_f_score))
+        print('[%8s] entity-wise: precision %.6f, recall %.6f, f_score %s' % (label, total_precision_2, total_recall_2, total_f_score_2))
 
         if print_detail:
             print('label-wise detail : ')
@@ -114,9 +115,10 @@ class Evaluator:
             if size == sys.maxsize and name == 'train':
                 continue
             seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch = data_set.get_random_batch(size)
+            label = ('f_' if size == sys.maxsize else 'r_') + name
             print()
             print('.... %6s set ....' % name)
-            self.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail)
+            self.eval(seq_ids_batch, label_ids_batch, seq_ids_mask_batch, label_ids_mask_batch, print_detail, label)
         print('%s %s size %s' % (line, dt.datetime.now(), size))
 
         if print_eval_test:
