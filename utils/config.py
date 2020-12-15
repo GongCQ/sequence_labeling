@@ -22,6 +22,8 @@ BERT_WEIGHT_DECAY = 0
 BERT_FULL_CONN_LEARNING_RATE = 0.003
 BERT_FULL_CONN_WEIGHT_DECAY = 0.01
 
+GLOBAL_LR_SCALE = 1.0
+
 def print_config():
     format_str = '%-28s: %s'
     print('==== PARAM ====')
@@ -46,4 +48,6 @@ def print_config():
     print(format_str % ('BERT_WEIGHT_DECAY', BERT_WEIGHT_DECAY))
     print(format_str % ('BERT_FULL_CONN_LEARNING_RATE', BERT_FULL_CONN_LEARNING_RATE))
     print(format_str % ('BERT_FULL_CONN_WEIGHT_DECAY', BERT_FULL_CONN_WEIGHT_DECAY))
+    print()
+    print(format_str % ('GLOBAL_LR_SCALE', GLOBAL_LR_SCALE))
     print('==== PARAM ====')
