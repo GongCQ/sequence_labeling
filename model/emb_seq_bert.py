@@ -33,6 +33,17 @@ class EmbSeqBert(nn.Module):
             self.dropout = self.dropout.cuda()
             self.full_conn = self.full_conn.cuda()
 
+        print('---- parameters of EmbSeqBert ----')
+        print('bert_model_path               %s' % bert_model_path)
+        print('bert_trainable                %s' % bert_trainable)
+        print('bert_layer_index              %s' % bert_layer_index)
+        print('bert_full_conn_dropout        %s' % bert_full_conn_dropout)
+        print('bert_learning_rate            %s' % bert_learning_rate)
+        print('bert_weight_decay             %s' % bert_weight_decay)
+        print('bert_full_conn_learning_rate  %s' % bert_full_conn_learning_rate)
+        print('bert_full_conn_weight_decay   %s' % bert_full_conn_weight_decay)
+        print('----------------------------------')
+
     def forward(self, seq_ids, mask):
         '''
         :param seq_ids: tensor, shape [batch_size * seq_len], with char id selected in [0, 1, 2, ..., vocab_size - 1]

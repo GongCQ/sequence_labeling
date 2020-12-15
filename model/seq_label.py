@@ -6,10 +6,10 @@ import torch.optim as optim
 from model.crf import CRF
 import utils
 from model.emb_seq_bert import EmbSeqBert
-from utils.config import USE_GPU, LEARNING_RATE, WEIGHT_DECAY, MOMENTUM, GLOBAL_LR_SCALE
+from utils.config import USE_GPU
 
 class SeqLabel(nn.Module):
-    def __init__(self, emb_seq_model, label_num):
+    def __init__(self, emb_seq_model, label_num, learning_rate=0.1, weight_decay=1e-8, momentum=0, global_lr_scale=0.5):
         super(SeqLabel, self).__init__()
         self.emb_seq_model = emb_seq_model
         self.label_num = label_num
@@ -24,8 +24,16 @@ class SeqLabel(nn.Module):
         params_config = self.emb_seq_model.get_params_config() + [{'params': self.crf.parameters()}]
         for item in params_config:
             if 'lr' in item.keys():
-                item['lr'] *= GLOBAL_LR_SCALE
-        self.optimizer = optim.SGD(params=params_config, lr=LEARNING_RATE, momentum=MOMENTUM,weight_decay=WEIGHT_DECAY)
+                item['lr'] *= global_lr_scale
+        self.optimizer = optim.SGD(params=params_config, lr=learning_rate, momentum=momentum,weight_decay=weight_decay)
+
+        print('---- parameters of EmbSeqBert ----')
+        print('emb_seq_model    %s' % emb_seq_model)
+        print('learning_rate    %s' % learning_rate)
+        print('weight_decay     %s' % weight_decay)
+        print('momentum         %s' % momentum)
+        print('global_lr_scale  %s' % global_lr_scale)
+        print('----------------------------------')
 
     def forward(self, seq_ids, mask):
         feature_seq = self.emb_seq_model(seq_ids=seq_ids, mask=mask)
