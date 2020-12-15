@@ -9,6 +9,7 @@
 8.torch里的dropout在执行后会自动对向量进行1/(1-p)的放大！！具体参见torch的文档！！
 9.jieba分词cut_all=True的bug似乎在python3.6中没有，在python3.7中有。
 10.各种模型在msra数据集上都很不稳定，在测试集上的准确率上窜下跳，虽然之前在people_daily_1998上都很稳定，可能是因为people_daily_1998有时间和数字这两个容易识别的实体占大头的缘故
+11.同等参数条件下，各种模型在people_daily_1998的稳定性比在msra上好一些，可能是因为people_daily_1998标签比较多的缘故，可以尝试从理论上推导一下。msra上降低学习率后就比较稳定了
 
 
 自己的lstm和torch的lstm的对比：
