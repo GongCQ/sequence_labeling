@@ -47,12 +47,12 @@ class SeqLabel(nn.Module):
         score = self.crf.neg_log_likelihood_loss(feats=feature_seq, mask=mask, tags=label_ids)
         return score / seq_ids.shape[0]
 
-    def train_batch(self, seq_ids, label_ids, mask):
+    def train_batch(self, seq_ids, label_ids, mask, max_loss=99999999):
 
         loss = self.loss(seq_ids, label_ids, mask)
         loss_value = float(loss)
         if loss_value > utils.MAX_LOSS:
-            raise Exception('loss %s exceed the MAX_LOSS %s' % (loss, utils.MAX_LOSS))
+            raise Exception('loss %s exceed the MAX_LOSS %s' % (loss, max_loss))
         loss.backward()
         self.optimizer.step()
         self.zero_grad()
