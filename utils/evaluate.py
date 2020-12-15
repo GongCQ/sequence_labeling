@@ -89,8 +89,10 @@ class Evaluator:
             self.metric.entity_wise_metric_batch(true_label_list_batch=label_batch,
                                                  predict_label_list_batch=predict_label_batch)
 
-        print('[%8s] label-wise : precision %.6f, recall %.6f, f_score %s' % (label, total_precision, total_recall, total_f_score))
-        print('[%8s] entity-wise: precision %.6f, recall %.6f, f_score %s' % (label, total_precision_2, total_recall_2, total_f_score_2))
+        print('[%-8s] label-wise : precision %.6f, recall %.6f, f_score %s' %
+              (label, total_precision, total_recall, total_f_score))
+        print('[%-8s] entity-wise: precision %.6f, recall %.6f, f_score %s' %
+              (label, total_precision_2, total_recall_2, total_f_score_2))
 
         if print_detail:
             print('label-wise detail : ')
