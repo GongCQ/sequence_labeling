@@ -5,7 +5,7 @@ import pandas as pd
 import jieba
 import torch
 import torch.nn as nn
-from utils.config import *
+from utils.config import USE_GPU
 from utils.data import Tokenizer, WordTokenizer, get_char_emb_array
 
 pd.set_option('display.max_rows', 1000)

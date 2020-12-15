@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from utils.config import *
+from utils.config import USE_GPU
 from utils.data import PAD_INDEX
 import model.lstm_ as lstm_
 
