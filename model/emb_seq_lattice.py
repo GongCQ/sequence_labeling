@@ -363,7 +363,7 @@ class LatticeLSTM(nn.Module):
 
         char_hidden_state = torch.stack(char_hidden_list, dim=1)
         if self.dropout_prob > 0:
-            char_hidden_state = self.dropout(char_hidden_state)
+            char_hidden_state = self.dropout(char_hidden_state) * (1 - self.dropout_prob)
         return char_hidden_state
 
     def forward(self, seq_ids, mask, char_emb_seq = None):
@@ -397,8 +397,6 @@ class LatticeLSTM(nn.Module):
             char_hidden_state = torch.cat([char_hidden_state, reverse_char_hidden_state], dim=2)
 
         feature_seq = self.full_conn(char_hidden_state)
-        if self.dropout_prob > 0:
-            feature_seq = self.dropout(feature_seq) * (1 - self.dropout_prob)
         return feature_seq
 
     def get_params_config(self):

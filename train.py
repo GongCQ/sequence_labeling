@@ -44,7 +44,7 @@ elif MODEL == 'LATTICE':
     ignore_invalid_word = False
     emb_trainable = True
     emb_max_norm = None
-    word_emb_path = os.path.join('word_emb', 'word_emb_200d_tencent_ailab_top_10w.txt')
+    word_emb_path = os.path.join('word_emb', 'word_emb_200d_tencent_ailab_top_50w.txt')
     char_emb_path = os.path.join('word_emb', 'char_emb_300d_nl2sql.txt')
     print('bidirectional: %s' % bidirectional)
     print('cut_all: %s' % cut_all)
